@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/*
+  Privremeni neutralni tokeni. Zamijenit će se tokenima iz Claude Design materijala
+  (boje, tipografija, razmaci, radijusi) — komponente koriste samo ove varijable.
+*/
+@theme {
+  --color-pozadina: #f7f7f8;
+  --color-povrsina: #ffffff;
+  --color-rub: #e2e2e6;
+  --color-tekst: #18181b;
+  --color-tekst-slab: #63636e;
+  --color-naglasak: #1f4fd1;
+  --color-naglasak-tekst: #ffffff;
+  --color-uspjeh: #157347;
+  --color-upozorenje: #9a6700;
+  --color-greska: #b42318;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-pozadina: #111113;
+    --color-povrsina: #1b1b1f;
+    --color-rub: #2e2e35;
+    --color-tekst: #ededf0;
+    --color-tekst-slab: #a0a0ab;
+    --color-naglasak: #7b9bff;
+    --color-naglasak-tekst: #0b0b0d;
+    --color-uspjeh: #4ac38a;
+    --color-upozorenje: #e0b04a;
+    --color-greska: #ff7a6e;
+  }
+}
+
+body {
+  background: var(--color-pozadina);
+  color: var(--color-tekst);
+  font-family: var(--font-sans);
+}

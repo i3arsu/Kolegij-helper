@@ -1,0 +1,2 @@
+# Ogledni CSV-ovi namjerno imaju CRLF i BOM (kao izvoz iz Excela) — ne normalizirati
+db/podaci/*.csv -text
