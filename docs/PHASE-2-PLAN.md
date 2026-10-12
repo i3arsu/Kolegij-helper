@@ -41,15 +41,18 @@ If any default changes, your mentor will tell you which function or constant to 
 ### Setup
 
 ```bash
-cp .env.example .env              # fill in values; for local dev any random strings work (use [A-Za-z0-9_-] only)
-echo "DATOTEKE_DIR=./.data/datoteke" >> .env
+cp .env.example .env              # Windows PowerShell: Copy-Item .env.example .env
+# Edit .env in your editor:
+#   - replace every "promijeni" (use [A-Za-z0-9_-] only)
+#   - add the line DATOTEKE_DIR=./.data/datoteke
+# Do NOT use `echo ... >> .env` in PowerShell (it writes UTF-16 and breaks the file).
 npm install
 npm run db:up && npm run db:migrate && npm run seed
 npm run dev                       # http://localhost:3000, log in with the seed accounts in README.md
 npm test && npm run test:db       # both must be green before you change anything
 ```
 
-You need Docker Desktop running, because the database and `test:db` use Docker.
+You need Docker Desktop running, because the database and `test:db` use Docker. On Windows, see the section "Windows: česti problemi" in `README.md` (line endings, reserved ports).
 
 ### Read first (about 2 hours, worth it)
 

@@ -25,16 +25,33 @@ Na engleskom: [docs/BRIEF.md](docs/BRIEF.md) (opis aplikacije) i [docs/PHASE-2-P
 
 ## Lokalni razvoj
 
-Potrebno: Node 22, Docker.
+Potrebno: Node 22, Git i Docker Desktop (na Windowsu s WSL2 backendom). Docker Desktop mora biti pokrenut.
 
 ```bash
-cp .env.example .env          # zatim postaviti vrijednosti
+cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
 npm install
-npm run db:up                 # Postgres na 127.0.0.1:54329
+npm run db:up                 # Postgres na 127.0.0.1:DB_PORT (zadano 5433)
 npm run db:migrate
 npm run seed                  # Programiranje 2, 25 izmišljenih studenata, termini, dolaznost
 npm run dev
 ```
+
+`.env` uređujte u editoru. U `.env.example` zamijenite svaku vrijednost `promijeni`, a za lozinke koristite samo znakove `A-Z a-z 0-9 - _`. Ne dodajite retke s `echo … >> .env` u PowerShellu, jer on piše UTF-16 i pokvari datoteku.
+
+### Windows: česti problemi
+
+- **Prijelomi redaka (CRLF).** `.gitattributes` osigurava da `*.sh` i `*.sql` ostanu s LF prijelomima. Ako je repo kloniran prije toga, ili je baza prvi put pokrenuta s pokvarenom init skriptom:
+  ```powershell
+  git rm -r --cached . -q; git reset --hard   # ponovno izvlači datoteke s ispravnim prijelomima
+  npm run db:down -- -v                       # briše dev bazu; init skripta se izvršava samo na praznom volumenu
+  npm run db:up
+  ```
+- **Port je zauzet ili zabranjen** (`bind: An attempt was made to access a socket in a way forbidden…`). Windows (Hyper-V) rezervira dijelove raspona 49152–65535. Postavite drugi `DB_PORT` u `.env` (npr. 5433 ili 5434) i isti port upišite u sva tri `*_DATABASE_URL`. Zauzete raspone možete provjeriti s `netsh int ipv4 show excludedportrange protocol=tcp`.
+- **`db:up` ne prolazi.** Pogledajte zapis baze:
+  ```bash
+  docker compose -f docker-compose.dev.yml logs db
+  ```
+  Greška u `00-uloge.sh` znači problem s prijelomima redaka (vidi prvu točku).
 
 Seed računi (lozinka je `SEED_LOZINKA` iz `.env`):
 

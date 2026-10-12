@@ -1,2 +1,8 @@
+# Skripte koje se izvršavaju u Linux kontejnerima moraju imati LF (Windows git ih inače pretvori u CRLF)
+*.sh  text eol=lf
+*.sql text eol=lf
+Dockerfile text eol=lf
+Caddyfile  text eol=lf
+
 # Ogledni CSV-ovi namjerno imaju CRLF i BOM (kao izvoz iz Excela) — ne normalizirati
 db/podaci/*.csv -text

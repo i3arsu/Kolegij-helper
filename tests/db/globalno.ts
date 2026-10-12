@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { resolveBinary } from "dbmate";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import pg from "pg";
 import type { TestProject } from "vitest/node";
@@ -41,7 +42,7 @@ export default async function setup(project: TestProject) {
   await kp.end();
 
   execFileSync(
-    "node_modules/.bin/dbmate",
+    resolveBinary(), // stvarni binarni dbmate (radi i na Windowsu)
     ["--url", `postgres://app_owner:${LOZINKE.app_owner}@${host}:${port}/predlozak?sslmode=disable`,
       "--migrations-dir", "db/migrations", "--no-dump-schema", "up"],
     { stdio: "pipe" },
