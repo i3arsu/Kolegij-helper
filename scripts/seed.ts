@@ -11,6 +11,7 @@ import { TZDate } from "@date-fns/tz";
 import { addDays, format, startOfWeek } from "date-fns";
 import { sql } from "kysely";
 import { napraviBazu } from "../lib/db/klijent";
+import { urlBaze } from "../lib/db/url";
 import { hashLozinke } from "../lib/auth/lozinka";
 import { lokalnoUTrenutak, ZONA } from "../lib/domena/vrijeme";
 
@@ -19,11 +20,11 @@ if (process.env.NODE_ENV === "production") {
   process.exit(1);
 }
 const LOZINKA = process.env.SEED_LOZINKA;
-const URL = process.env.OWNER_DATABASE_URL;
-if (!LOZINKA || !URL) {
-  console.error("Postavite SEED_LOZINKA i OWNER_DATABASE_URL u .env");
+if (!LOZINKA) {
+  console.error("Postavite SEED_LOZINKA u .env");
   process.exit(1);
 }
+const URL = urlBaze("app_owner");
 
 // Deterministički PRNG (mulberry32) da seed uvijek daje iste podatke.
 let stanje = 42;
@@ -60,7 +61,7 @@ function ascii(s: string) {
 }
 
 async function main() {
-  const db = napraviBazu(URL!, 2);
+  const db = napraviBazu(URL, 2);
   const hash = await hashLozinke(LOZINKA!);
 
   await sql`truncate korisnik, kolegij, sesija, prijava_pokusaj, revizija restart identity cascade`.execute(db);

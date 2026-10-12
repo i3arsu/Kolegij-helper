@@ -25,7 +25,9 @@ services:
   migracije:
     build: { context: ., dockerfile: docker/Dockerfile, target: alati }
     environment:
-      OWNER_DATABASE_URL: postgres://app_owner:${APP_OWNER_PASS}@db:5432/pracenje?sslmode=disable
+      DB_HOST: db
+      DB_PORT: "5432"
+      APP_OWNER_PASS: ${APP_OWNER_PASS}
     depends_on:
       db: { condition: service_healthy }
     restart: "no"
@@ -34,8 +36,11 @@ services:
     build: { context: ., dockerfile: docker/Dockerfile, target: aplikacija }
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://app_user:${APP_USER_PASS}@db:5432/pracenje
-      AUTH_DATABASE_URL: postgres://app_auth:${APP_AUTH_PASS}@db:5432/pracenje
+      # URL-ove gradi lib/db/url.ts; app ne dobiva lozinku vlasnika baze
+      DB_HOST: db
+      DB_PORT: "5432"
+      APP_USER_PASS: ${APP_USER_PASS}
+      APP_AUTH_PASS: ${APP_AUTH_PASS}
       QR_TAJNA: ${QR_TAJNA:?}
       APP_URL: ${APP_URL:?}
     volumes:

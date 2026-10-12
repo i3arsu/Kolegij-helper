@@ -40,19 +40,15 @@ If any default changes, your mentor will tell you which function or constant to 
 
 ### Setup
 
+Follow **[SETUP.md](SETUP.md)** step by step. It works on Windows, macOS and Linux, and its troubleshooting section covers the errors you are most likely to hit on Windows (`password authentication failed`, CRLF line endings, reserved ports). In short:
+
 ```bash
-cp .env.example .env              # Windows PowerShell: Copy-Item .env.example .env
-# Edit .env in your editor:
-#   - replace every "promijeni" (use [A-Za-z0-9_-] only)
-#   - add the line DATOTEKE_DIR=./.data/datoteke
-# Do NOT use `echo ... >> .env` in PowerShell (it writes UTF-16 and breaks the file).
 npm install
+cp .env.example .env              # then edit: replace every "promijeni", add DATOTEKE_DIR=./.data/datoteke
 npm run db:up && npm run db:migrate && npm run seed
-npm run dev                       # http://localhost:3000, log in with the seed accounts in README.md
+npm run dev                       # http://localhost:3000
 npm test && npm run test:db       # both must be green before you change anything
 ```
-
-You need Docker Desktop running, because the database and `test:db` use Docker. On Windows, see the section "Windows: česti problemi" in `README.md` (line endings, reserved ports).
 
 ### Read first (about 2 hours, worth it)
 
@@ -74,6 +70,8 @@ You need Docker Desktop running, because the database and `test:db` use Docker. 
    - Let RLS and the database functions decide whether the user may touch the row.
    - If a query returns nothing, respond with `notFound()` or 404. Never 403, because that reveals the row exists.
 3. **Migrations that are already applied are immutable.** Always add a new file (`0010_…`, `0011_…`). After any schema change, run `npm run db:migrate && npm run db:types` and commit the regenerated `lib/db/tipovi.ts`.
+   - While developing a migration, you can undo the last one with `npx tsx scripts/db.ts dbmate rollback`. This works only before it is committed or shared; that is why every migration needs a correct `-- migrate:down` section.
+   - Use only the npm scripts (or `scripts/db.ts`) for database tooling. They build the connection URL from `.env` and work the same on Windows and macOS. Don't call `dbmate` directly with a hand-written URL.
 4. **Business rules that protect data live in the database**, as `security definer` functions and triggers. TypeScript only validates input and shows nice errors. Every `security definer` function must:
    - have `set search_path = ''` and fully qualify names (`public.predaja`, `private.je_nastavnik(...)`);
    - check permissions in its first lines;
@@ -560,6 +558,8 @@ Sizes are relative: S < M < L. M2 is the most important milestone. Take your tim
   - run `npm run typecheck` after adding routes, so the `PageProps<'/route'>` types are generated.
 - **Leaving files on disk when the database call fails.** Always clean up in a `catch` or `finally`.
 - **Showing a raw database error to the user.** Always pass errors through `porukaGreske()`.
+- **Adding or removing an npm package on macOS** can drop Windows/Linux entries from `package-lock.json` (a known npm bug). CI then fails with `Missing: @emnapi/... from lock file`. The fix is in [SETUP.md](SETUP.md) → Troubleshooting. Any PR that changes dependencies must pass CI.
+- **A database "password authentication failed" error after editing `.env`.** Recreate the dev database with `npm run db:down -- -v` (see [SETUP.md](SETUP.md)).
 
 ## 9. Questions? Escalate early
 

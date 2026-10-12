@@ -694,11 +694,11 @@ services:
     # bez objavljenog porta prema van
   migrate:
     image: <app>
-    command: dbmate --url $OWNER_DATABASE_URL up
+    command: npx tsx scripts/db.ts migrate      # URL vlasnika gradi lib/db/url.ts iz DB_HOST/DB_PORT/APP_OWNER_PASS
     depends_on: { db: { condition: service_healthy } }
   app:
     image: <app>                       # Next standalone, non-root korisnik
-    environment: [DATABASE_URL (app_user), AUTH_DATABASE_URL (app_auth), QR_TAJNA, APP_URL, TZ=Europe/Zagreb]
+    environment: [DB_HOST, DB_PORT, APP_USER_PASS, APP_AUTH_PASS, QR_TAJNA, APP_URL, TZ=Europe/Zagreb]   # URL-ove gradi lib/db/url.ts
     volumes: [datoteke:/data/datoteke]
     depends_on: { migrate: { condition: service_completed_successfully } }
     healthcheck: /api/zdravlje

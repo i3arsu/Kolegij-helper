@@ -5,6 +5,7 @@
  */
 import "dotenv/config";
 import { napraviBazu } from "../lib/db/klijent";
+import { urlBaze } from "../lib/db/url";
 import { generirajLozinku } from "../lib/auth/generator-lozinke";
 import { hashLozinke } from "../lib/auth/lozinka";
 
@@ -14,7 +15,7 @@ async function main() {
     console.error("Upotreba: npm run kreiraj-admina -- email@unipu.hr [Ime Prezime]");
     process.exit(1);
   }
-  const db = napraviBazu(process.env.OWNER_DATABASE_URL!, 1);
+  const db = napraviBazu(urlBaze("app_owner"), 1);
   const lozinka = generirajLozinku();
   const korisnik = await db
     .insertInto("korisnik")

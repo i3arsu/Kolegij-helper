@@ -85,9 +85,7 @@ export interface Korisnik {
   lozinka_hash: string;
   lozinka_promijenjena_at: Timestamp | null;
   mora_promijeniti_lozinku: Generated<boolean>;
-  neuspjelih_prijava: Generated<number>;
   zadnja_prijava: Timestamp | null;
-  zakljucan_do: Timestamp | null;
 }
 
 export interface Osoblje {

@@ -16,7 +16,7 @@ COPY tsconfig.json ./
 COPY db ./db
 COPY lib ./lib
 COPY scripts ./scripts
-CMD ["sh", "-c", "npx dbmate --url \"$OWNER_DATABASE_URL\" --migrations-dir db/migrations --no-dump-schema --wait up"]
+CMD ["npx", "tsx", "scripts/db.ts", "migrate"]
 
 FROM node:22-alpine AS aplikacija
 WORKDIR /app

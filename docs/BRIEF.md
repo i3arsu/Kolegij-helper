@@ -89,7 +89,8 @@ The code and database use Croatian names, matching the domain and the UI. This l
 
 ## Where to look
 
-- `README.md`: setup, commands, deployment.
+- `docs/SETUP.md`: local setup step by step, with Windows troubleshooting.
+- `README.md`: overview, commands, deployment (in Croatian).
 - `PLAN.md`: the full original plan (in Croatian): data model, RLS rules, edge cases, all phases.
 - `db/migrations/`: the schema, RLS policies and database functions. This is the source of truth.
 - `tests/db/`: how isolation is tested. Read these before writing your own.

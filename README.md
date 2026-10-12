@@ -5,7 +5,7 @@ Nastavnik i asistenti vode evidenciju, a student vidi samo vlastite podatke.
 
 Stack: Next.js 16 (App Router) · PostgreSQL 17 s Row Level Security · Kysely · Docker.
 Detaljan plan i faze su u `PLAN.md`.
-Na engleskom: [docs/BRIEF.md](docs/BRIEF.md) (opis aplikacije) i [docs/PHASE-2-PLAN.md](docs/PHASE-2-PLAN.md) (plan za Fazu 2).
+Na engleskom: [docs/BRIEF.md](docs/BRIEF.md) (opis aplikacije), [docs/SETUP.md](docs/SETUP.md) (postavljanje razvojnog okruženja) i [docs/PHASE-2-PLAN.md](docs/PHASE-2-PLAN.md) (plan za Fazu 2).
 
 ## Sigurnosni model ukratko
 
@@ -36,22 +36,15 @@ npm run seed                  # Programiranje 2, 25 izmišljenih studenata, term
 npm run dev
 ```
 
-`.env` uređujte u editoru. U `.env.example` zamijenite svaku vrijednost `promijeni`, a za lozinke koristite samo znakove `A-Z a-z 0-9 - _`. Ne dodajite retke s `echo … >> .env` u PowerShellu, jer on piše UTF-16 i pokvari datoteku.
+`.env` uređujte u editoru i zamijenite svaku vrijednost `promijeni`. Za lozinke koristite samo znakove `A-Z a-z 0-9 - _`, jer Docker Compose tumači `$` kao varijablu. Svaka lozinka piše se samo jednom: URL-ove baze aplikacija i skripte grade same (`lib/db/url.ts`).
 
-### Windows: česti problemi
+Lozinke baze postavljaju se samo pri prvom `db:up` (na praznom volumenu). Ako ih poslije promijenite u `.env`, bazu treba ponovno kreirati:
 
-- **Prijelomi redaka (CRLF).** `.gitattributes` osigurava da `*.sh` i `*.sql` ostanu s LF prijelomima. Ako je repo kloniran prije toga, ili je baza prvi put pokrenuta s pokvarenom init skriptom:
-  ```powershell
-  git rm -r --cached . -q; git reset --hard   # ponovno izvlači datoteke s ispravnim prijelomima
-  npm run db:down -- -v                       # briše dev bazu; init skripta se izvršava samo na praznom volumenu
-  npm run db:up
-  ```
-- **Port je zauzet ili zabranjen** (`bind: An attempt was made to access a socket in a way forbidden…`). Windows (Hyper-V) rezervira dijelove raspona 49152–65535. Postavite drugi `DB_PORT` u `.env` (npr. 5433 ili 5434) i isti port upišite u sva tri `*_DATABASE_URL`. Zauzete raspone možete provjeriti s `netsh int ipv4 show excludedportrange protocol=tcp`.
-- **`db:up` ne prolazi.** Pogledajte zapis baze:
-  ```bash
-  docker compose -f docker-compose.dev.yml logs db
-  ```
-  Greška u `00-uloge.sh` znači problem s prijelomima redaka (vidi prvu točku).
+```bash
+npm run db:down -- -v && npm run db:up && npm run db:migrate && npm run seed
+```
+
+Detaljne upute (na engleskom) i rješenja čestih problema na Windowsu nalaze se u [docs/SETUP.md](docs/SETUP.md). Pokrivaju grešku `password authentication failed`, CRLF prijelome, rezervirane portove i lockfile.
 
 Seed računi (lozinka je `SEED_LOZINKA` iz `.env`):
 
@@ -66,7 +59,7 @@ Seed računi (lozinka je `SEED_LOZINKA` iz `.env`):
 Ogledne CSV datoteke za uvoz nalaze se u `db/podaci/` (ispravna, s greškama, ponovni uvoz).
 
 Nakon promjene sheme pokrenite `npm run db:migrate`, a zatim `npm run db:types`
-(time se regenerira `lib/db/tipovi.ts`).
+(time se regenerira `lib/db/tipovi.ts`). Stanje migracija: `npx tsx scripts/db.ts dbmate status`.
 
 ## Testovi
 
@@ -86,11 +79,12 @@ DB testovi (`tests/db/`):
 ## Produkcija (vlastiti poslužitelj)
 
 ```bash
-cp .env.example .env    # postaviti jake lozinke (samo [A-Za-z0-9_-]), QR_TAJNA, APP_URL=https://…, DOMENA
+cp .env.example .env    # jake lozinke (samo [A-Za-z0-9_-]), QR_TAJNA, APP_URL=https://…, DOMENA; DB_* ostaviti zadano
 docker compose up -d --build
 docker compose run --rm migracije npx tsx scripts/kreiraj-admina.ts ime.prezime@unipu.hr Ime Prezime
 ```
 
+- Lozinke baze iz `.env` dobiva samo servis kojem trebaju: `app` dobiva samo `APP_USER_PASS` i `APP_AUTH_PASS`, a `migracije` dobiva `APP_OWNER_PASS`.
 - `db`: Postgres bez objavljenog porta. `migracije`: dbmate, pokreće se pri svakom `up`.
   `app`: Next.js. `proxy`: Caddy s automatskim TLS-om.
 - Ako sveučilište ima vlastiti reverse proxy, ukloniti servis `proxy` i usmjeriti postojeći proxy na `app:3000`.
