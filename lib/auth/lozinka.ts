@@ -26,13 +26,38 @@ export async function laznaProvjera(lozinka: string): Promise<void> {
 export const MIN_DULJINA_LOZINKE = 10;
 
 /** Vraća poruku greške ili null ako je nova lozinka prihvatljiva. */
-export function provjeriNovuLozinku(lozinka: string, korisnik: { email: string; jmbag?: string | null }): string | null {
-  if (lozinka.length < MIN_DULJINA_LOZINKE) return `Lozinka mora imati najmanje ${MIN_DULJINA_LOZINKE} znakova.`;
-  if (lozinka.length > 200) return "Lozinka je predugačka.";
-  const mala = lozinka.toLowerCase();
-  if (mala === korisnik.email.toLowerCase() || mala === korisnik.email.split("@")[0].toLowerCase()) {
-    return "Lozinka ne smije biti jednaka e-mail adresi.";
+
+export type RazlogNoveLozinke =
+  | "prekratka"
+  | "preduga"
+  | "email"
+  | "jmbag";
+
+/** Vraća kod greške ili null ako je nova lozinka prihvatljiva. */
+export function provjeriNovuLozinku(
+  lozinka: string,
+  korisnik: { email: string; jmbag?: string | null }
+): RazlogNoveLozinke | null {
+  if (lozinka.length < MIN_DULJINA_LOZINKE) {
+    return "prekratka";
   }
-  if (korisnik.jmbag && lozinka.includes(korisnik.jmbag)) return "Lozinka ne smije sadržavati JMBAG.";
+
+  if (lozinka.length > 200) {
+    return "preduga";
+  }
+
+  const mala = lozinka.toLowerCase();
+
+  if (
+    mala === korisnik.email.toLowerCase() ||
+    mala === korisnik.email.split("@")[0].toLowerCase()
+  ) {
+    return "email";
+  }
+
+  if (korisnik.jmbag && lozinka.includes(korisnik.jmbag)) {
+    return "jmbag";
+  }
+
   return null;
 }

@@ -4,12 +4,12 @@ export type PoljeUvoza = "jmbag" | "ime" | "prezime" | "email" | "grupa_p" | "gr
 
 // Zaglavlja se normaliziraju (mala slova, bez dijakritika, razmaka i interpunkcije) pa uspoređuju s aliasima.
 const ALIASI: Record<PoljeUvoza, string[]> = {
-  jmbag: ["jmbag", "maticnibroj", "maticni"],
+  jmbag: ["jmbag", "maticnibroj", "maticni", "studentid", "studentidnumber"],
   ime: ["ime", "firstname"],
   prezime: ["prezime", "lastname", "surname"],
-  email: ["email", "mail", "eposta", "emailadresa", "adresaeposte"],
-  grupa_p: ["grupap", "grupapredavanja", "predavanja", "predavanje", "p"],
-  grupa_v: ["grupav", "grupavjezbi", "grupavjezbe", "vjezbe", "v", "grupa"],
+  email: ["email", "mail", "eposta", "emailadresa", "adresaeposte", "emailaddress"],
+  grupa_p: ["grupap", "grupapredavanja", "predavanja", "predavanje", "p", "lecturegroup", "lecture"],
+  grupa_v: ["grupav", "grupavjezbi", "grupavjezbe", "vjezbe", "v", "grupa", "exercisegroup", "exercises", "labgroup", "group"],
 };
 export const OBAVEZNA_POLJA: PoljeUvoza[] = ["jmbag", "ime", "prezime", "email"];
 

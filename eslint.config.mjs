@@ -17,6 +17,18 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["app/**"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          args: "all",
+          argsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  {
     files: ["app/api/zdravlje/**"],
     rules: { "no-restricted-imports": "off" },
   },

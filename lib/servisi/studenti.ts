@@ -2,6 +2,7 @@ import { sql } from "kysely";
 import type { Tx } from "@/lib/db/klijent";
 import { generirajLozinku } from "@/lib/auth/generator-lozinke";
 import { hashLozinke } from "@/lib/auth/lozinka";
+import { GreskaAplikacije } from "@/lib/http/greske";
 
 export type RedStudenta = {
   student_id: string;
@@ -56,5 +57,5 @@ export async function promijeniGrupu(tx: Tx, upisId: string, grupaId: string, od
 
 export async function postaviStatusUpisa(tx: Tx, upisId: string, status: "aktivan" | "ispisan") {
   const r = await tx.updateTable("upis").set({ status }).where("id", "=", upisId).executeTakeFirst();
-  if (Number(r.numUpdatedRows) === 0) throw new Error("Upis nije pronađen.");
+  if (Number(r.numUpdatedRows) === 0) throw new GreskaAplikacije("enrollmentNotFound");
 }

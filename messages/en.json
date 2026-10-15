@@ -1,0 +1,460 @@
+{
+  "header": {
+    "appName": "Student Progress Tracker",
+    "password": "Password",
+    "logout": "Log out",
+    "language": "Language"
+  },
+  "login": {
+    "title": "Student Progress Tracker",
+    "description": "Sign in with the email address and password provided by your instructor.",
+    "forgotPassword": "Forgot your password? Contact your course instructor.",
+    "privacy": "Privacy",
+    "metaTitle": "Sign in",
+    "email": "Email address",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "invalidCredentials": "Incorrect email address or password.",
+    "locked": "Too many failed sign-in attempts. Please try again in 15 minutes.",
+    "unexpectedError": "An unexpected error occurred. Please try again."
+  },
+  "passwordChange": {
+    "title": "Change password",
+    "metaTitle": "Change password",
+    "requiredDescription": "Before continuing, set your own password instead of the one assigned to you.",
+    "otherDevicesDescription": "After changing your password, you will be signed out on all your other devices.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "minimumLength": "At least 10 characters.",
+    "submit": "Change password",
+    "submitting": "Saving…",
+    "mismatch": "The new password and confirmation do not match.",
+    "currentPasswordIncorrect": "The current password is incorrect.",
+    "samePassword": "The new password must be different from the current password.",
+    "tooShort": "The password must contain at least {min} characters.",
+    "tooLong": "The password cannot exceed 200 characters.",
+    "emailNotAllowed": "The password must not be the same as the email address.",
+    "studentIdNotAllowed": "The password must not contain your student ID (JMBAG)."
+  },
+  "studentHome": {
+    "metaTitle": "My courses",
+    "title": "My courses",
+    "empty": "You are not enrolled in any active courses."
+  },
+  "studentCourse": {
+    "attendanceTitle": "Attendance",
+    "lectures": "Lectures",
+    "exercises": "Exercises",
+    "attendanceSummary": "Attended {present} of {held} recorded sessions",
+    "excusedSuffix": ", excused {count}",
+    "noRecordedSessions": "No sessions have been recorded yet.",
+    "upcomingTitle": "Upcoming sessions",
+    "noScheduledSessions": "No sessions scheduled.",
+    "overviewTab": "Overview",
+    "attendanceTab": "Attendance"
+  },
+  "courseNavigation": {
+    "ariaLabel": "Course navigation",
+    "summary": "Overview",
+    "students": "Students",
+    "sessions": "Sessions",
+    "groups": "Groups",
+    "csvImport": "CSV import",
+    "settings": "Settings",
+    "lecturer": "Lecturer",
+    "assistant": "Teaching assistant"
+  },
+  "studentAttendance": {
+    "session": "Session",
+    "group": "Group",
+    "topic": "Topic",
+    "status": "Status",
+    "cancelled": "Cancelled",
+    "notRecorded": "Not yet recorded",
+    "noPastSessions": "No sessions have taken place yet.",
+    "statuses": {
+      "present": "Present",
+      "excused": "Excused",
+      "absent": "Absent"
+    }
+  },
+  "metadata": {
+    "title": "Student Progress Tracker",
+    "description": "Attendance, grades and assignments for your course"
+  },
+  "home": {
+    "metaTitle": "Home",
+    "noCourseAccess": "Your account is not associated with any course. Please contact your lecturer.",
+    "chooseRole": "Choose a role",
+    "teachingStaff": "Teaching (staff)",
+    "myCoursesStudent": "My courses (student)",
+    "passwordChange": "Change password"
+  },
+  "privacy": {
+    "metaTitle": "Privacy",
+    "title": "Personal Data Processing Notice",
+    "dataProcessed": "The application processes data needed to track course activities: first name, surname, JMBAG, email address, group membership, attendance, submitted work, scores and feedback.",
+    "storageAndAccess": "Data is stored exclusively on the university's server. Students can see only their own data; lecturers and teaching assistants can see the data of students enrolled in their courses or assigned groups.",
+    "retentionContact": "Data controller, retention period and contact details of the university's data protection officer:",
+    "fillIn": "[to be completed]"
+  },
+  "teacherHome": {
+    "metaTitle": "My courses",
+    "heading": "Courses",
+    "empty": "You have not been assigned to any courses yet.",
+    "archived": "Archived",
+    "newCourse": "New course"
+  },
+  "courseForm": {
+    "fields": {
+      "name": "Name",
+      "code": "Course code",
+      "academicYear": "Academic year",
+      "semester": "Semester",
+      "teacherEmail": "Lecturer email"
+    },
+    "placeholders": {
+      "academicYear": "2026/2027"
+    },
+    "help": {
+      "teacherEmail": "Leave blank if you are the lecturer."
+    },
+    "semesters": {
+      "winter": "Winter semester",
+      "summer": "Summer semester"
+    },
+    "submit": "Create course",
+    "submitting": "Creating course…",
+    "validation": {
+      "nameRequired": "Enter a course name with at least 2 characters.",
+      "nameTooLong": "The course name cannot exceed 200 characters.",
+      "codeRequired": "The course code is required.",
+      "codeTooLong": "The course code cannot exceed 30 characters.",
+      "academicYearFormat": "Academic year format: 2026/2027.",
+      "semesterInvalid": "Select a valid semester."
+    },
+    "errors": {
+      "adminOnly": "Only an administrator can create a course.",
+      "staffEmailNotFound": "No staff member was found with that email address.",
+      "teacherEmailRequired": "Enter the course lecturer's email address."
+    }
+  },
+  "teacherCourse": {
+    "summaryTitle": "Overview",
+    "students": "Students",
+    "averageLectureAttendance": "Average lecture attendance",
+    "averageExerciseAttendance": "Average exercise attendance",
+    "warnings": "Warnings",
+    "noStudentsBelowThreshold": "No students are below the attendance threshold.",
+    "belowThreshold": "Below attendance threshold: {lectures} lectures, {exercises} exercises",
+    "pastSessionsWithoutRecords": "Past sessions without attendance records: {count}",
+    "upcomingSessions": "Upcoming sessions",
+    "noScheduledSessions": "No sessions scheduled.",
+    "missingAttendance": "Missing attendance records",
+    "allPastSessionsRecorded": "All past sessions have attendance records."
+  },
+  "teacherStudentList": {
+    "search": "Search",
+    "searchPlaceholder": "Name, JMBAG, email",
+    "group": "Group",
+    "allGroups": "All",
+    "belowThreshold": "Below threshold",
+    "includeWithdrawn": "Include withdrawn students",
+    "filter": "Filter",
+    "reset": "Reset",
+    "resultsCount": "{filtered} of {total} students",
+    "studentName": "Last name and first name",
+    "jmbag": "JMBAG",
+    "lectureGroup": "Lecture group",
+    "exerciseGroup": "Exercise group",
+    "lectureAttendance": "Lecture attendance",
+    "exerciseAttendance": "Exercise attendance",
+    "lastLogin": "Last sign-in",
+    "never": "Never",
+    "withdrawn": "(withdrawn)",
+    "empty": "No students found."
+  },
+  "teacherStudentProfile": {
+    "withdrawn": "withdrawn",
+    "jmbag": "JMBAG",
+    "email": "Email",
+    "lastLogin": "Last sign-in",
+    "never": "Never",
+    "attendance": "Attendance",
+    "lectures": "Lectures",
+    "exercises": "Exercises",
+    "session": "Session",
+    "group": "Group",
+    "topic": "Topic",
+    "status": "Status",
+    "guest": "guest",
+    "cancelled": "cancelled",
+    "notRecorded": "not recorded",
+    "statuses": {
+      "present": "Present",
+      "excused": "Excused",
+      "absent": "Absent"
+    },
+    "groups": "Groups",
+    "from": "from",
+    "to": "to",
+    "accountAndEnrollment": "Account and enrollment",
+    "markWithdrawn": "Mark as withdrawn",
+    "restoreActive": "Restore to active",
+    "resetConfirm": "Generate a new password? The old password will stop working, and the student will be signed out on all devices.",
+    "newPasswordShown": "New password (shown only once):",
+    "mustChangePassword": "The student will have to change it at their first sign-in.",
+    "resetPassword": "Reset password",
+    "resettingPassword": "Resetting password…",
+    "groupChanged": "Group changed successfully.",
+    "newGroup": "New group",
+    "chooseGroup": "Choose…",
+    "validFrom": "Effective from",
+    "groupDateHelp": "Sessions before this date remain in the previous group.",
+    "changeGroup": "Change group",
+    "changingGroup": "Changing group…"
+  },
+  "teacherStudentActions": {
+    "validation": {
+      "selectGroup": "Select a group.",
+      "selectDate": "Select a valid change date."
+    }
+  },
+  "teacherSessions": {
+    "group": "Group",
+    "allGroups": "All",
+    "show": "Show",
+    "newSession": "New session",
+    "date": "Date",
+    "time": "Time",
+    "topic": "Topic",
+    "attendance": "Attendance",
+    "saved": "saved",
+    "missing": "missing",
+    "cancelled": "cancelled",
+    "empty": "No sessions.",
+    "singleSession": "Single session",
+    "weekly": "Repeat weekly",
+    "choose": "Choose…",
+    "fromDate": "From date",
+    "toDate": "To date (inclusive)",
+    "weekday": "Day of the week",
+    "days": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "start": "Start",
+    "end": "End",
+    "sameTopicHelp": "Same topic for all sessions; you can change it later.",
+    "create": "Create",
+    "saving": "Saving…",
+    "cancelledNotice": "This session is cancelled and does not count towards attendance.",
+    "notStarted": "This session has not started yet.",
+    "details": "Details",
+    "type": "Type",
+    "types": {
+      "predavanje": "Lectures",
+      "vjezbe": "Exercises"
+    },
+    "savedAt": "saved {when}",
+    "notSaved": "not saved",
+    "restore": "Restore session",
+    "cancel": "Cancel session",
+    "delete": "Delete session",
+    "validation": {
+      "invalidTime": "Invalid time",
+      "selectGroup": "Select a group.",
+      "selectDate": "Select a date.",
+      "selectStartDate": "Select a start date.",
+      "selectEndDate": "Select an end date.",
+      "noWeekday": "The selected period does not include that day of the week.",
+      "invalidStatus": "Invalid status.",
+      "invalidJmbag": "Enter a valid JMBAG."
+    },
+    "guestAdded": "Guest added.",
+    "attendanceSaved": "Attendance saved ({count} students)."
+  },
+  "attendanceRecord": {
+    "allPresent": "All present",
+    "counts": "Present {present} · absent {absent} · excused {excused}",
+    "statusFor": "Status: {name}",
+    "short": {
+      "prisutan": "P",
+      "odsutan": "A",
+      "opravdano": "Exc"
+    },
+    "statuses": {
+      "prisutan": "Present",
+      "odsutan": "Absent",
+      "opravdano": "Excused"
+    },
+    "note": "Note",
+    "guest": "guest",
+    "noStudents": "There are no students in this group.",
+    "saveChanges": "Save changes",
+    "saveAttendance": "Save attendance",
+    "saving": "Saving…",
+    "addGuest": "Add a guest (student from another group)",
+    "jmbag": "JMBAG",
+    "add": "Add",
+    "guestHelp": "A guest's attendance does not count towards the attendance rate. To make up a session, mark the absence in the student's own group as excused."
+  },
+  "teacherGroups": {
+    "group": "Group",
+    "type": "Type",
+    "students": "Students",
+    "assistants": "Teaching assistants",
+    "types": {
+      "predavanje": "Lectures",
+      "vjezbe": "Exercises"
+    },
+    "removeFromGroup": "Remove from group",
+    "assignToGroup": "Assign to group",
+    "newGroup": "New group",
+    "name": "Name",
+    "add": "Add group",
+    "validation": {
+      "nameRequired": "Name is required."
+    }
+  },
+  "teacherSettings": {
+    "passRules": "Pass rules",
+    "staff": "Course staff",
+    "name": "Name",
+    "role": "Role",
+    "remove": "Remove",
+    "roles": {
+      "nastavnik": "lecturer",
+      "asistent": "teaching assistant"
+    },
+    "minLectures": "Min. lecture attendance (%)",
+    "minExercises": "Min. exercise attendance (%)",
+    "minPoints": "Min. points",
+    "minPointsHelp": "Used from phase 2 (assignments).",
+    "excusedAbsence": "Excused absence",
+    "excused": {
+      "izuzeto": "not counted",
+      "kao_prisutan": "counts as present",
+      "kao_odsutan": "counts as absent"
+    },
+    "saveRules": "Save rules",
+    "staffEmail": "Staff member's email",
+    "add": "Add",
+    "validation": {
+      "percentRange": "The percentage must be between 0 and 100.",
+      "invalidEmail": "Invalid email address."
+    },
+    "rulesSaved": "Rules saved.",
+    "added": "Added."
+  },
+  "import": {
+    "step1": "1. Choose a file",
+    "csvFile": "CSV file",
+    "loading": "Loading…",
+    "showPreview": "Show preview",
+    "help": "Columns: JMBAG, Ime (first name), Prezime (last name), E-mail, and optionally Grupa P (lecture group) and Grupa V (exercise group). English headers also work. Separator ; or , — UTF-8 or Windows-1250 encoding. Re-importing updates existing students and deletes nothing.",
+    "step2": "2. Preview: {file}",
+    "encodingSeparator": "Encoding {encoding}, separator “{separator}”",
+    "ignoredColumns": " · ignored columns: {columns}",
+    "rowsWithErrors": "Rows with errors ({count}) — will not be imported",
+    "row": "Row",
+    "jmbag": "JMBAG",
+    "error": "Error",
+    "name": "Last name and first name",
+    "email": "Email",
+    "lectureShort": "L",
+    "exerciseShort": "E",
+    "note": "Note",
+    "kinds": {
+      "novi": "New students",
+      "upis_postojeceg": "Existing accounts, new enrollment",
+      "izmijenjen": "Changes",
+      "nepromijenjen": "Unchanged",
+      "konflikt": "Conflicts (will not be imported)"
+    },
+    "fields": {
+      "jmbag": "JMBAG",
+      "ime": "First name",
+      "prezime": "Last name",
+      "email": "Email",
+      "grupa_p": "Lecture group",
+      "grupa_v": "Exercise group"
+    },
+    "conflictStudent": "Email already used by the student with JMBAG {jmbag}",
+    "conflictStaff": "Email already used by a staff member",
+    "groupChange": "group change",
+    "reEnrollment": "re-enrollment",
+    "notInFile": "{count} enrolled students are not in the file. The import will neither change nor delete them; if needed, mark them as withdrawn on the student's profile.",
+    "groupChangesFrom": "Group changes effective from",
+    "importing": "Importing…",
+    "confirm": "3. Confirm import",
+    "finished": "Import finished: {new} new, {existing} existing enrolled, {changed} changed ({groupChanges} group changes, {reEnrolled} re-enrollments), {unchanged} unchanged.",
+    "skipped": "Rows skipped: {count}.",
+    "credentials": "Sign-in details of new students",
+    "downloadCsv": "Download CSV",
+    "print": "Print",
+    "passwordWarning": "Passwords are shown only now and are not stored anywhere. Download or print them before leaving this page. Keep the password file safe and delete it after handing out the passwords.",
+    "password": "Password",
+    "csvHeaders": {
+      "jmbag": "JMBAG",
+      "prezime": "Last name",
+      "ime": "First name",
+      "email": "Email",
+      "lozinka": "Password"
+    },
+    "fileName": "sign-in-details.csv",
+    "errors": {
+      "chooseFile": "Choose a CSV file.",
+      "tooLarge": "The file is larger than 1 MB.",
+      "missingColumns": "Missing columns: {columns}. JMBAG, first name, last name and email are required.",
+      "noRows": "The file has no data rows.",
+      "chooseDate": "Select the date the group changes take effect."
+    },
+    "validation": {
+      "jmbagDigits": "JMBAG must have exactly 10 digits",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "invalidEmail": "Invalid email address",
+      "unknownLectureGroup": "Unknown lecture group “{group}”",
+      "unknownExerciseGroup": "Unknown exercise group “{group}”",
+      "duplicateJmbag": "Duplicate JMBAG {jmbag} (rows {rows})",
+      "duplicateEmail": "Same email in several rows ({rows})"
+    }
+  },
+  "errors": {
+    "generic": "Error.",
+    "tryAgain": "Something went wrong. Please try again.",
+    "forbidden": "You are not allowed to do this.",
+    "duplicate": "A record with these details already exists.",
+    "twoGroups": "A student cannot be in two groups of the same type at the same time.",
+    "overlap": "Overlaps with an existing record.",
+    "invalidData": "Invalid data.",
+    "staffEmailNotFound": "No staff member was found with that email address.",
+    "cannotRemoveSelf": "You cannot remove yourself from the course.",
+    "rulesForbidden": "You are not allowed to change the rules.",
+    "enrollmentNotFound": "Enrollment not found.",
+    "sessionNotFound": "Session not found.",
+    "sessionHasAttendance": "A session with attendance records cannot be deleted; you can cancel it instead.",
+    "guestNotEnrolled": "No student with that JMBAG is enrolled in the course.",
+    "endAfterStart": "The session must end after it starts.",
+    "endDateAfterStart": "The end date must be after the start date.",
+    "tooManySessions": "At most {max} sessions at once.",
+    "db": {
+      "studentNotEnrolled": "The student is not enrolled in the course",
+      "studentNotInGroup": "The student was not a member of the group at the time of the session",
+      "groupNotInEnrollmentCourse": "The group does not belong to the enrollment's course",
+      "groupNotInCourse": "The group does not belong to the course",
+      "changeDateTooEarly": "The change date must be after the start of the current membership",
+      "invalidJmbag": "Invalid JMBAG: {value}",
+      "emailTaken": "Email {value} is already used by another user",
+      "unknownGroup": "Unknown group: {value}"
+    }
+  }
+}
