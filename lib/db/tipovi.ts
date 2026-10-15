@@ -48,6 +48,17 @@ export interface ClanstvoGrupe {
   vrijedi: Generated<string>;
 }
 
+export interface Datoteka {
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  mime: string;
+  naziv: string;
+  putanja: string;
+  sha256: string;
+  velicina: Int8;
+  vlasnik: Generated<string>;
+}
+
 export interface Dolazak {
   evidentirano_at: Generated<Timestamp>;
   evidentirao: Generated<string | null>;
@@ -111,12 +122,28 @@ export interface PravilaProlaza {
   updated_at: Generated<Timestamp>;
 }
 
+export interface PredlozakKomentara {
+  id: Generated<string>;
+  kolegij_id: string;
+  naslov: string;
+  tekst: string;
+}
+
 export interface PrijavaPokusaj {
   created_at: Generated<Timestamp>;
   email: string | null;
   id: Generated<Int8>;
   ip: string | null;
   uspjeh: boolean;
+}
+
+export interface ProduzenjeRoka {
+  created_at: Generated<Timestamp>;
+  novi_rok: Timestamp;
+  odobrio: Generated<string>;
+  razlog: string | null;
+  student_id: string;
+  zadatak_id: string;
 }
 
 export interface Revizija {
@@ -191,9 +218,36 @@ export interface VDolaznost {
   tip: string | null;
 }
 
+export interface Zadatak {
+  created_at: Generated<Timestamp>;
+  created_by: Generated<string>;
+  dopusti_kasnu_predaju: Generated<boolean>;
+  id: Generated<string>;
+  kolegij_id: string;
+  max_bodova: Numeric;
+  nacini_predaje: Generated<string[]>;
+  naslov: string;
+  objavljen_at: Timestamp | null;
+  opis: Generated<string>;
+  rok: Timestamp;
+  updated_at: Generated<Timestamp>;
+  za_cijeli_kolegij: Generated<boolean>;
+}
+
+export interface ZadatakGrupa {
+  grupa_id: string;
+  zadatak_id: string;
+}
+
+export interface ZadatakPrilog {
+  datoteka_id: string;
+  zadatak_id: string;
+}
+
 export interface DB {
   asistent_grupa: AsistentGrupa;
   clanstvo_grupe: ClanstvoGrupe;
+  datoteka: Datoteka;
   dolazak: Dolazak;
   grupa: Grupa;
   kolegij: Kolegij;
@@ -201,7 +255,9 @@ export interface DB {
   osoblje: Osoblje;
   osoblje_kolegija: OsobljeKolegija;
   pravila_prolaza: PravilaProlaza;
+  predlozak_komentara: PredlozakKomentara;
   prijava_pokusaj: PrijavaPokusaj;
+  produzenje_roka: ProduzenjeRoka;
   revizija: Revizija;
   sesija: Sesija;
   student: Student;
@@ -209,4 +265,7 @@ export interface DB {
   upis: Upis;
   uvoz: Uvoz;
   v_dolaznost: VDolaznost;
+  zadatak: Zadatak;
+  zadatak_grupa: ZadatakGrupa;
+  zadatak_prilog: ZadatakPrilog;
 }
