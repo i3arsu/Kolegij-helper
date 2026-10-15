@@ -34,7 +34,7 @@ export async function resetLozinkeAkcija(
   kolegijId: string,
   studentId: string,
   _prethodnoStanje: StanjeReseta,
-  _forma: FormData,
+  forma: FormData,
 ): Promise<StanjeReseta> {
   await zahtijevajNastavnika(kolegijId);
 
@@ -45,7 +45,12 @@ export async function resetLozinkeAkcija(
 
     return { lozinka };
   } catch (e) {
-    return { greska: porukaGreske(e) };
+    return {
+      greska: porukaGreske(
+        e,
+        await getTranslations({ locale: jezikObrasca(forma), namespace: "errors" }),
+      ),
+    };
   }
 }
 
@@ -90,7 +95,9 @@ export async function promjenaGrupeAkcija(
       ),
     );
   } catch (e) {
-    return { greska: porukaGreske(e) };
+    return {
+      greska: porukaGreske(e, await getTranslations({ locale, namespace: "errors" })),
+    };
   }
 
   const prefiks = locale === routing.defaultLocale ? "" : `/${locale}`;

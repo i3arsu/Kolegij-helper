@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import type { Tx } from "@/lib/db/klijent";
+import { GreskaAplikacije } from "@/lib/http/greske";
 
 export type StatusDolaska = "prisutan" | "odsutan" | "opravdano";
 
@@ -32,14 +33,14 @@ export async function kreirajTermine(
 
 export async function postaviOtkazan(tx: Tx, terminId: string, otkazan: boolean) {
   const r = await tx.updateTable("termin").set({ otkazan }).where("id", "=", terminId).executeTakeFirst();
-  if (Number(r.numUpdatedRows) === 0) throw new Error("Termin nije pronađen.");
+  if (Number(r.numUpdatedRows) === 0) throw new GreskaAplikacije("sessionNotFound");
 }
 
 export async function obrisiTermin(tx: Tx, terminId: string) {
   const ima = await tx.selectFrom("dolazak").select("termin_id").where("termin_id", "=", terminId).executeTakeFirst();
-  if (ima) throw new Error("Termin s evidencijom dolaznosti ne može se obrisati; možete ga otkazati.");
+  if (ima) throw new GreskaAplikacije("sessionHasAttendance");
   const r = await tx.deleteFrom("termin").where("id", "=", terminId).executeTakeFirst();
-  if (Number(r.numDeletedRows) === 0) throw new Error("Termin nije pronađen.");
+  if (Number(r.numDeletedRows) === 0) throw new GreskaAplikacije("sessionNotFound");
 }
 
 /** Termin s popisom studenata koji su bili članovi grupe u vrijeme termina, plus gosti. */
@@ -101,13 +102,13 @@ export async function spremiEvidenciju(
     .set({ evidencija_spremljena_at: sql`coalesce(evidencija_spremljena_at, now())` })
     .where("id", "=", terminId)
     .executeTakeFirst();
-  if (Number(r.numUpdatedRows) === 0) throw new Error("Termin nije pronađen.");
+  if (Number(r.numUpdatedRows) === 0) throw new GreskaAplikacije("sessionNotFound");
 }
 
 export async function dodajGosta(tx: Tx, terminId: string, jmbag: string) {
   const { rows } = await sql<{ id: string | null }>`select private.nadji_studenta_za_termin(${terminId}, ${jmbag}) as id`.execute(tx);
   const studentId = rows[0]?.id;
-  if (!studentId) throw new Error("Student s tim JMBAG-om nije upisan na kolegij.");
+  if (!studentId) throw new GreskaAplikacije("guestNotEnrolled");
   await tx
     .insertInto("dolazak")
     .values({ termin_id: terminId, student_id: studentId, status: "prisutan", gost: true, napomena: "Gost" })

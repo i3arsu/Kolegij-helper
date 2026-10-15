@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Gumb, Kartica, Tablica } from "@/components/ui";
 import { upit, zahtijevajNastavnika } from "@/lib/auth/guard";
 import { osobljeKolegija, pravilaProlaza } from "@/lib/servisi/kolegij";
@@ -14,23 +15,24 @@ export default async function Postavke({ params }: PageProps<"/[locale]/nastava/
     ja: profil.osoblje?.id,
   }));
   if (!pravila) notFound();
+  const t = await getTranslations("teacherSettings");
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Kartica naslov="Pravila prolaza">
+      <Kartica naslov={t("passRules")}>
         <FormaPravila kolegijId={kolegijId} pravila={pravila} />
       </Kartica>
-      <Kartica naslov="Osoblje kolegija">
+      <Kartica naslov={t("staff")}>
         <Tablica>
-          <thead><tr><th>Ime</th><th>Uloga</th><th /></tr></thead>
+          <thead><tr><th>{t("name")}</th><th>{t("role")}</th><th /></tr></thead>
           <tbody>
             {osoblje.map((o) => (
               <tr key={o.id}>
                 <td>{[o.titula, o.ime, o.prezime].filter(Boolean).join(" ")}</td>
-                <td>{o.uloga}</td>
+                <td>{t(`roles.${o.uloga}`)}</td>
                 <td className="text-right">
                   {o.id !== ja && (
                     <form action={ukloniOsobljeAkcija.bind(null, kolegijId, o.id)}>
-                      <Gumb varijanta="opasni" className="px-2 py-1 text-xs">Ukloni</Gumb>
+                      <Gumb varijanta="opasni" className="px-2 py-1 text-xs">{t("remove")}</Gumb>
                     </form>
                   )}
                 </td>

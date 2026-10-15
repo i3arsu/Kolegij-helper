@@ -35,6 +35,8 @@ export default async function MojiKolegiji({ params }: Props) {
 
   const kolegiji = await upit((tx) => mojiKolegiji(tx));
 
+  const ts = await getTranslations("courseForm");
+
   return (
     <>
       <Naslov>{t("title")}</Naslov>
@@ -51,7 +53,7 @@ export default async function MojiKolegiji({ params }: Props) {
               >
                 <div className="font-medium">{k.naziv}</div>
                 <div className="mt-1 text-sm text-tekst-slab">
-                  {k.akademska_godina} · {k.semestar}
+                  {k.akademska_godina} · {ts(k.semestar === "ljetni" ? "semesters.summer" : "semesters.winter")}
                 </div>
               </Link>
             </li>

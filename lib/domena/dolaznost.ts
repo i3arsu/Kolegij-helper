@@ -19,14 +19,3 @@ export function postotakDolaznosti(
 export function zadovoljava(postotak: number | null, prag: number): boolean | null {
   return postotak === null ? null : postotak >= prag;
 }
-
-export const NAZIV_STATUSA: Record<string, string> = {
-  prisutan: "Prisutan",
-  odsutan: "Odsutan",
-  opravdano: "Opravdano",
-};
-
-export const NAZIV_TIPA: Record<string, string> = {
-  predavanje: "Predavanja",
-  vjezbe: "Vježbe",
-};

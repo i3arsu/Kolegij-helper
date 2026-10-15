@@ -11,26 +11,20 @@ export type PostojeciStudent = {
 };
 export type PostojeciEmail = { email: string; jmbag: string | null }; // jmbag null = e-mail pripada osoblju
 
-export type Izmjena = { polje: string; staro: string | null; novo: string | null };
+// Ključeve polja i vlasnika e-maila prevodi sučelje (import.fields, import.conflict*).
+export type PoljeIzmjene = "ime" | "prezime" | "email" | "grupa_p" | "grupa_v";
+export type Izmjena = { polje: PoljeIzmjene; staro: string | null; novo: string | null };
 
 export type StavkaPregleda =
   | { vrsta: "novi"; red: RedUvoza }
   | { vrsta: "upis_postojeceg"; red: RedUvoza; izmjene: Izmjena[] }
   | { vrsta: "izmijenjen"; red: RedUvoza; izmjene: Izmjena[]; promjenaGrupe: boolean; ponovniUpis: boolean }
   | { vrsta: "nepromijenjen"; red: RedUvoza }
-  | { vrsta: "konflikt"; red: RedUvoza; poruka: string };
+  | { vrsta: "konflikt"; red: RedUvoza; emailKoristi: { jmbag: string } | "osoblje" };
 
 export type PregledUvoza = {
   stavke: StavkaPregleda[];
   nisuUDatoteci: { jmbag: string; ime: string; prezime: string }[];
-};
-
-const NAZIVI_POLJA: Record<string, string> = {
-  ime: "Ime",
-  prezime: "Prezime",
-  email: "E-mail",
-  grupa_p: "Grupa P",
-  grupa_v: "Grupa V",
 };
 
 export function usporedi(
@@ -48,7 +42,7 @@ export function usporedi(
       return {
         vrsta: "konflikt",
         red,
-        poruka: vlasnik ? `E-mail već koristi student s JMBAG-om ${vlasnik}` : "E-mail već koristi član osoblja",
+        emailKoristi: vlasnik ? { jmbag: vlasnik } : "osoblje",
       };
     }
     const s = poJmbagu.get(red.jmbag);
@@ -56,13 +50,13 @@ export function usporedi(
 
     const izmjene: Izmjena[] = [];
     for (const polje of ["ime", "prezime", "email"] as const) {
-      if (s[polje] !== red[polje]) izmjene.push({ polje: NAZIVI_POLJA[polje], staro: s[polje], novo: red[polje] });
+      if (s[polje] !== red[polje]) izmjene.push({ polje, staro: s[polje], novo: red[polje] });
     }
     let promjenaGrupe = false;
     for (const polje of ["grupa_p", "grupa_v"] as const) {
       // Prazna grupa u datoteci ne mijenja postojeće članstvo.
       if (red[polje] && s.upis_status && s[polje] !== red[polje]) {
-        izmjene.push({ polje: NAZIVI_POLJA[polje], staro: s[polje], novo: red[polje] });
+        izmjene.push({ polje, staro: s[polje], novo: red[polje] });
         if (s[polje]) promjenaGrupe = true;
       }
     }

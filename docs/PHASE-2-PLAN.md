@@ -75,11 +75,11 @@ npm test && npm run test:db       # both must be green before you change anythin
 4. **Business rules that protect data live in the database**, as `security definer` functions and triggers. TypeScript only validates input and shows nice errors. Every `security definer` function must:
    - have `set search_path = ''` and fully qualify names (`public.predaja`, `private.je_nastavnik(...)`);
    - check permissions in its first lines;
-   - raise errors with `errcode = 'P0001'` and a Croatian message for business errors, or `'42501'` for "no permission". `lib/http/greske.ts` turns these into UI messages.
+   - raise errors with `errcode = 'P0001'` and a Croatian message for business errors, or `'42501'` for "no permission". `lib/http/greske.ts` turns these into UI messages. For every new P0001 message, add a pattern to `PORUKE_BAZE` in `lib/http/greske.ts` and a key under `errors.db` in both `messages/*.json`; a unit test fails if a migration message has no translation.
 5. **"Now" comes from the database (`now()`)**, never from `Date.now()` in components or actions. Deadlines are compared in SQL.
 6. **Time zones.** Store `timestamptz`. Form inputs are local Zagreb time; convert them with `lokalnoUTrenutak(datum, vrijeme)` from `lib/domena/vrijeme.ts`. A deadline entered as a date only means `23:59` that day.
 7. **`numeric` columns** (points) come back from Postgres as **strings**. Convert them with `Number()` only at the UI edge.
-8. **Language.** All user-facing text is in Croatian. Use Croatian identifiers, matching the existing code. Code comments may be in Croatian or English, but keep them short.
+8. **Language.** The UI is bilingual with `next-intl`: Croatian at `/…` (default) and English at `/en/…`. Never hardcode user-facing text. Add it to `messages/hr.json` and `messages/en.json` (TypeScript rejects unknown keys via `global.d.ts`; a unit test checks both files have the same keys). Use `getTranslations("namespace")` in Server Components, `useTranslations` in Client Components, and in Server Actions read the locale from the form (`<input type="hidden" name="locale">`, `jezikObrasca()` from `i18n/obrazac.ts`). Use `Link` from `@/i18n/navigation`, not `next/link`, so links keep the language. Services throw `new GreskaAplikacije("key")` (keys under `errors`); actions turn errors into text with `porukaGreske(e, await getTranslations({ locale, namespace: "errors" }))`. Use Croatian identifiers, matching the existing code. Code comments may be in Croatian or English, but keep them short.
 9. **Design.** Do not style. Use `components/ui.tsx`. The design system will replace it later.
 10. **Logging.** Never log file contents, passwords or full request bodies.
 

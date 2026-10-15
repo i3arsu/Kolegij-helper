@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import type { Tx } from "@/lib/db/klijent";
+import { GreskaAplikacije } from "@/lib/http/greske";
 
 export async function mojiKolegiji(tx: Tx) {
   // RLS vraća samo kolegije na kojima je korisnik osoblje ili upisani student (admin vidi sve).
@@ -45,7 +46,7 @@ export async function osobljeKolegija(tx: Tx, kolegijId: string) {
 export async function dodajOsoblje(tx: Tx, kolegijId: string, email: string, uloga: "nastavnik" | "asistent") {
   const { rows } = await sql<{ id: string | null }>`select private.nadji_osoblje(${email}) as id`.execute(tx);
   const osobljeId = rows[0]?.id;
-  if (!osobljeId) throw new Error("Ne postoji član osoblja s tom e-mail adresom.");
+  if (!osobljeId) throw new GreskaAplikacije("staffEmailNotFound");
   await tx
     .insertInto("osoblje_kolegija")
     .values({ kolegij_id: kolegijId, osoblje_id: osobljeId, uloga })
@@ -54,7 +55,7 @@ export async function dodajOsoblje(tx: Tx, kolegijId: string, email: string, ulo
 }
 
 export async function ukloniOsoblje(tx: Tx, kolegijId: string, osobljeId: string, mojOsobljeId: string) {
-  if (osobljeId === mojOsobljeId) throw new Error("Ne možete ukloniti sebe s kolegija.");
+  if (osobljeId === mojOsobljeId) throw new GreskaAplikacije("cannotRemoveSelf");
   await tx.deleteFrom("asistent_grupa").where("osoblje_id", "=", osobljeId)
     .where("grupa_id", "in", (eb) => eb.selectFrom("grupa").select("id").where("kolegij_id", "=", kolegijId))
     .execute();
@@ -101,5 +102,5 @@ export async function spremiPravila(
   p: { min_dolaznost_predavanja: number; min_dolaznost_vjezbi: number; min_bodova: number; opravdano_se_racuna: string },
 ) {
   const r = await tx.updateTable("pravila_prolaza").set(p).where("kolegij_id", "=", kolegijId).executeTakeFirst();
-  if (Number(r.numUpdatedRows) === 0) throw new Error("Nemate ovlasti za izmjenu pravila.");
+  if (Number(r.numUpdatedRows) === 0) throw new GreskaAplikacije("rulesForbidden");
 }

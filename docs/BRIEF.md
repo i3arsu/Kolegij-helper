@@ -11,7 +11,7 @@ A web application for tracking students on a university course (first course: *P
   - give students feedback over several revision rounds.
 - **Students** use it to see their own attendance, points, deadlines and feedback, and nothing about anyone else.
 
-The user interface is in Croatian. It runs on the university's own server, in Docker.
+The user interface is in Croatian (`/…`) and English (`/en/…`), via `next-intl`. It runs on the university's own server, in Docker.
 
 ## Who uses it
 

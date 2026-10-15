@@ -1,5 +1,5 @@
 // Privremene osnovne komponente; izgled će se zamijeniti prema Claude Design materijalima.
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import type { ComponentProps, ReactNode } from "react";
 
 function spoji(...klase: (string | false | null | undefined)[]) {
