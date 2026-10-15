@@ -15,7 +15,8 @@
     "kreiraj-admina": "tsx scripts/kreiraj-admina.ts",
     "test": "vitest run tests/unit",
     "test:db": "vitest run --config vitest.db.config.mts",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "ip": "ipconfig /all"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -23,6 +24,7 @@
     "date-fns": "^4.4.0",
     "kysely": "^0.29.6",
     "next": "16.4.0",
+    "next-intl": "^4.14.9",
     "papaparse": "^5.7.0",
     "pg": "^8.23.1",
     "react": "19.3.0",

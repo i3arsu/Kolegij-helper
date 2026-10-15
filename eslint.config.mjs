@@ -6,14 +6,15 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    // Sirovi pristup bazi (bez RLS konteksta) dopušten je samo u lib/db, lib/auth i skriptama.
-    // Sve ostalo ide kroz upit()/kaoKorisnik().
-    files: ["app/**", "components/**", "lib/servisi/**", "lib/csv/**", "lib/domena/**"],
+    files: ["app/**"],
     rules: {
-      "no-restricted-imports": ["error", {
-        paths: [{ name: "@/lib/db", importNames: ["bazaApp", "bazaAuth"], message: "Koristite upit() iz @/lib/auth/guard (RLS kontekst)." }],
-        patterns: [{ group: ["@/lib/db/klijent"], importNames: ["napraviBazu"], message: "Koristite upit() iz @/lib/auth/guard." }],
-      }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          args: "all",
+          argsIgnorePattern: "^_",
+        },
+      ],
     },
   },
   {

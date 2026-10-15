@@ -1,0 +1,226 @@
+
+{
+  "header": {
+    "appName": "Praćenje studenata",
+    "password": "Lozinka",
+    "logout": "Odjava",
+    "language": "Jezik"
+  },
+  "login": {
+    "title": "Praćenje studenata",
+    "description": "Prijavite se adresom e-pošte i lozinkom koju ste dobili od nastavnika.",
+    "forgotPassword": "Zaboravili ste lozinku? Javite se nastavniku kolegija.",
+    "privacy": "Privatnost",
+    "metaTitle": "Prijava",
+    "email": "Adresa e-pošte",
+    "password": "Lozinka",
+    "submit": "Prijava",
+    "submitting": "Prijava…",
+    "invalidCredentials": "Neispravna adresa e-pošte ili lozinka.",
+    "locked": "Previše neuspješnih pokušaja prijave. Pokušajte ponovno za 15 minuta.",
+    "unexpectedError": "Došlo je do neočekivane pogreške. Pokušajte ponovno."
+  },
+  "passwordChange": {
+    "title": "Promjena lozinke",
+    "metaTitle": "Promjena lozinke",
+    "requiredDescription": "Prije nastavka postavite vlastitu lozinku umjesto dodijeljene.",
+    "otherDevicesDescription": "Nakon promjene bit ćete odjavljeni na svim ostalim uređajima.",
+    "currentPassword": "Trenutna lozinka",
+    "newPassword": "Nova lozinka",
+    "confirmPassword": "Potvrda nove lozinke",
+    "minimumLength": "Najmanje 10 znakova.",
+    "submit": "Promijeni lozinku",
+    "submitting": "Spremanje…",
+    "mismatch": "Nova lozinka i potvrda se ne podudaraju.",
+    "currentPasswordIncorrect": "Trenutna lozinka nije ispravna.",
+    "samePassword": "Nova lozinka mora se razlikovati od trenutne.",
+    "tooShort": "Lozinka mora imati najmanje {min} znakova.",
+    "tooLong": "Lozinka ne smije biti dulja od 200 znakova.",
+    "emailNotAllowed": "Lozinka ne smije biti jednaka adresi e-pošte.",
+    "studentIdNotAllowed": "Lozinka ne smije sadržavati JMBAG."
+  },
+  "studentHome": {
+    "metaTitle": "Moji kolegiji",
+    "title": "Moji kolegiji",
+    "empty": "Niste upisani ni na jedan aktivni kolegij."
+  },
+  "studentCourse": {
+    "attendanceTitle": "Dolaznost",
+    "lectures": "Predavanje",
+    "exercises": "Vježbe",
+    "attendanceSummary": "Prisutni {present} od {held} evidentiranih termina",
+    "excusedSuffix": ", opravdano {count}",
+    "noRecordedSessions": "Još nema evidentiranih termina.",
+    "upcomingTitle": "Sljedeći termini",
+    "noScheduledSessions": "Nema zakazanih termina.",
+    "overviewTab": "Pregled",
+    "attendanceTab": "Dolaznost"
+  },
+  "courseNavigation": {
+    "ariaLabel": "Navigacija kolegija",
+    "summary": "Sažetak",
+    "students": "Studenti",
+    "sessions": "Termini",
+    "groups": "Grupe",
+    "csvImport": "Uvoz CSV",
+    "settings": "Postavke",
+    "lecturer": "nastavnik",
+    "assistant": "asistent"
+  },
+  "studentAttendance": {
+    "session": "Termin",
+    "group": "Grupa",
+    "topic": "Tema",
+    "status": "Status",
+    "cancelled": "Otkazan",
+    "notRecorded": "Još nije evidentirano",
+    "noPastSessions": "Još nema održanih termina.",
+    "statuses": {
+      "present": "Prisutan",
+      "excused": "Opravdano",
+      "absent": "Odsutan"
+    }
+  },
+  "metadata": {
+    "title": "Praćenje studenata",
+    "description": "Dolaznost, bodovi i zadaci na kolegiju"
+  },
+  "home": {
+    "metaTitle": "Početna",
+    "noCourseAccess": "Vaš račun nije povezan ni s jednim kolegijem. Javite se nastavniku.",
+    "chooseRole": "Odaberite ulogu",
+    "teachingStaff": "Nastava (osoblje)",
+    "myCoursesStudent": "Moji kolegiji (student)",
+    "passwordChange": "Promjena lozinke"
+  },
+  "privacy": {
+    "metaTitle": "Privatnost",
+    "title": "Obavijest o obradi osobnih podataka",
+    "dataProcessed": "Aplikacija obrađuje podatke potrebne za praćenje nastave: ime, prezime, JMBAG, e-mail adresu, pripadnost grupama, dolaznost, predane radove, bodove i povratne informacije.",
+    "storageAndAccess": "Podaci se pohranjuju isključivo na poslužitelju sveučilišta. Student vidi samo vlastite podatke; nastavnik i asistent vide podatke studenata na svojim kolegijima, odnosno grupama.",
+    "retentionContact": "Voditelj obrade, rok čuvanja i kontakt službenika za zaštitu podataka:",
+    "fillIn": "[popuniti]"
+  },
+  "teacherHome": {
+    "metaTitle": "Moji kolegiji",
+    "heading": "Kolegiji",
+    "empty": "Još niste dodani ni na jedan kolegij.",
+    "archived": "Arhiviran",
+    "newCourse": "Novi kolegij"
+  },
+  "courseForm": {
+    "fields": {
+      "name": "Naziv",
+      "code": "Šifra",
+      "academicYear": "Akademska godina",
+      "semester": "Semestar",
+      "teacherEmail": "E-mail nastavnika"
+    },
+    "placeholders": {
+      "academicYear": "2026/2027"
+    },
+    "help": {
+      "teacherEmail": "Ostavite prazno ako ste vi nastavnik."
+    },
+    "semesters": {
+      "winter": "Zimski semestar",
+      "summer": "Ljetni semestar"
+    },
+    "submit": "Kreiraj kolegij",
+      "submitting": "Kreiranje kolegija…",
+    "validation": {
+      "nameRequired": "Unesite naziv kolegija s najmanje 2 znaka.",
+      "nameTooLong": "Naziv kolegija ne smije biti dulji od 200 znakova.",
+      "codeRequired": "Šifra je obavezna.",
+      "codeTooLong": "Šifra ne smije biti dulja od 30 znakova.",
+      "academicYearFormat": "Format akademske godine: 2026/2027.",
+      "semesterInvalid": "Odaberite valjani semestar."
+    },
+    "errors": {
+      "adminOnly": "Samo administrator može kreirati kolegij.",
+      "staffEmailNotFound": "Ne postoji član osoblja s tom e-mail adresom.",
+      "teacherEmailRequired": "Navedite e-mail nastavnika kolegija."
+    }
+  },
+  "teacherCourse": {
+    "summaryTitle": "Pregled",
+    "students": "Studenata",
+    "averageLectureAttendance": "Prosj. dolaznost P",
+    "averageExerciseAttendance": "Prosj. dolaznost V",
+    "warnings": "Upozorenja",
+    "noStudentsBelowThreshold": "Nema studenata ispod praga dolaznosti",
+    "belowThreshold": "Ispod praga dolaznosti: {lectures} (P), {exercises} (V)",
+    "pastSessionsWithoutRecords": "Prošli termini bez evidencije: {count}",
+    "upcomingSessions": "Sljedeći termini",
+    "noScheduledSessions": "Nema zakazanih termina.",
+    "missingAttendance": "Nedostaje evidencija",
+    "allPastSessionsRecorded": "Svi prošli termini su evidentirani."
+  },
+  "teacherStudentList": {
+    "search": "Pretraga",
+    "searchPlaceholder": "Ime, JMBAG, e-mail",
+    "group": "Grupa",
+    "allGroups": "Sve",
+    "belowThreshold": "Ispod praga",
+    "includeWithdrawn": "Uključi ispisane",
+    "filter": "Filtriraj",
+    "reset": "Poništi",
+    "resultsCount": "{filtered} od {total} studenata",
+    "studentName": "Prezime i ime",
+    "jmbag": "JMBAG",
+    "lectureGroup": "Grupa P",
+    "exerciseGroup": "Grupa V",
+    "lectureAttendance": "Dolaznost P",
+    "exerciseAttendance": "Dolaznost V",
+    "lastLogin": "Zadnja prijava",
+    "never": "nikad",
+    "withdrawn": "(ispisan)",
+    "empty": "Nema studenata."
+  },
+  "teacherStudentProfile": {
+    "withdrawn": "ispisan",
+    "jmbag": "JMBAG",
+    "email": "E-mail",
+    "lastLogin": "Zadnja prijava",
+    "never": "nikad",
+    "attendance": "Dolaznost",
+    "lectures": "Predavanja",
+    "exercises": "Vježbe",
+    "session": "Termin",
+    "group": "Grupa",
+    "topic": "Tema",
+    "status": "Status",
+    "guest": "gost",
+    "cancelled": "otkazan",
+    "notRecorded": "nije evidentirano",
+    "statuses": {
+      "present": "Prisutan",
+      "excused": "Opravdano",
+      "absent": "Odsutan"
+    },
+    "groups": "Grupe",
+    "from": "od",
+    "to": "do",
+    "accountAndEnrollment": "Račun i upis",
+    "markWithdrawn": "Označi kao ispisanog",
+    "restoreActive": "Vrati u aktivne",
+    "resetConfirm": "Generirati novu lozinku? Stara prestaje vrijediti i student se odjavljuje sa svih uređaja.",
+    "newPasswordShown": "Nova lozinka (prikazuje se samo sada):",
+    "mustChangePassword": "Student će je morati promijeniti pri prvoj prijavi.",
+    "resetPassword": "Resetiraj lozinku",
+    "resettingPassword": "Resetiranje lozinke…",
+    "groupChanged": "Grupa je promijenjena.",
+    "newGroup": "Nova grupa",
+    "chooseGroup": "Odaberite…",
+    "validFrom": "Vrijedi od",
+    "groupDateHelp": "Termini prije ovog datuma ostaju u staroj grupi.",
+    "changeGroup": "Promijeni grupu",
+    "changingGroup": "Promjena grupe…"
+  },
+  "teacherStudentActions": {
+    "validation": {
+      "selectGroup": "Odaberite grupu.",
+      "selectDate": "Odaberite valjan datum promjene."
+    }
+  }
+}
