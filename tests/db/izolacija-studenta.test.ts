@@ -126,11 +126,30 @@ describe("student S1 ne može ništa mijenjati", () => {
 
 describe("bez RLS konteksta", () => {
   it("svaka tablica vraća 0 redova", async () => {
-    const tablice = ["student", "upis", "clanstvo_grupe", "dolazak", "termin", "grupa", "kolegij", "osoblje", "korisnik", "pravila_prolaza", "v_dolaznost"] as const;
+      const tablice = [
+  "student",
+  "upis",
+  "clanstvo_grupe",
+  "dolazak",
+  "termin",
+  "grupa",
+  "kolegij",
+  "osoblje",
+  "korisnik",
+  "pravila_prolaza",
+  "v_dolaznost",
+  "predaja",
+  "predaja_verzija",
+  "predaja_datoteka",
+  "povratna_informacija",
+  "datoteka",
+  "produzenje_roka",
+  "v_predaja",
+  "v_predaja_verzija",
+] as const;
     const r = await o.bezKonteksta(async (tx) =>
       Object.fromEntries(await Promise.all(tablice.map(async (t) => [t, Number((await sql<{ n: string }>`select count(*) as n from ${sql.table(t)}`.execute(tx)).rows[0].n)]))),
     );
     expect(Object.values(r).every((n) => n === 0)).toBe(true);
   });
 });
-

@@ -454,7 +454,20 @@
       "changeDateTooEarly": "The change date must be after the start of the current membership",
       "invalidJmbag": "Invalid JMBAG: {value}",
       "emailTaken": "Email {value} is already used by another user",
-      "unknownGroup": "Unknown group: {value}"
+      "unknownGroup": "Unknown group: {value}",
+      "invalidSubmissionTransition": "This submission status transition is not allowed.",
+      "pointsExceedMaximum": "The points exceed the assignment maximum.",
+      "maxPointsBelowAwarded": "The assignment maximum cannot be lower than points already awarded.",
+      "cannotUnpublishSubmittedAssignment": "An assignment with submissions cannot be unpublished.",
+      "invalidSubmissionContent": "The submission content is invalid. Check the allowed submission types.",
+      "invalidFileMetadata": "The file metadata is invalid.",
+      "submissionCannotChange": "A submission under review or already accepted cannot be changed.",
+      "deadlineExpired": "The submission deadline has passed.",
+      "submissionWrongState": "The submission is not in a state that allows this action.",
+      "commentRequired": "A comment is required.",
+      "invalidSubmissionDecision": "The submission decision is invalid.",
+      "pointsRequired": "Points are required to accept a submission.",
+      "invalidPoints": "Points must be zero or greater."
     }
   }
 }

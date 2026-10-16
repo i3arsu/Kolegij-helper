@@ -26,6 +26,19 @@ const PORUKE_BAZE: [RegExp, string][] = [
   [/^Neispravan JMBAG: (.*)$/, "db.invalidJmbag"],
   [/^E-mail (.*) već koristi drugi korisnik$/, "db.emailTaken"],
   [/^Nepoznata grupa: (.*)$/, "db.unknownGroup"],
+  [/^Nedopušten prijelaz statusa: .* → .*$/, "db.invalidSubmissionTransition"],
+  [/^Bodovi ne mogu biti veći od maksimuma zadatka$/, "db.pointsExceedMaximum"],
+  [/^Maksimalan broj bodova ne može biti manji od već dodijeljenih bodova$/, "db.maxPointsBelowAwarded"],
+  [/^Zadatak s predajama ne može se povući iz objave$/, "db.cannotUnpublishSubmittedAssignment"],
+  [/^Neispravan sadržaj predaje\.$/, "db.invalidSubmissionContent"],
+  [/^Neispravni metapodaci datoteke\.$/, "db.invalidFileMetadata"],
+  [/^Predaja je u pregledu ili prihvaćena i ne može se mijenjati\.$/, "db.submissionCannotChange"],
+  [/^Rok za predaju je istekao\.$/, "db.deadlineExpired"],
+  [/^Predaja nije u stanju koje omogućuje ovu radnju\.$/, "db.submissionWrongState"],
+  [/^Komentar je obavezan\.$/, "db.commentRequired"],
+  [/^Odluka o predaji nije valjana\.$/, "db.invalidSubmissionDecision"],
+  [/^Za prihvaćanje su obavezni bodovi\.$/, "db.pointsRequired"],
+  [/^Neispravna vrijednost bodova\.$/, "db.invalidPoints"]
 ];
 
 export function porukaBaze(t: PrevoditeljGresaka, poruka: string | undefined): string {

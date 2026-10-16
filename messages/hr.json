@@ -454,7 +454,20 @@
       "changeDateTooEarly": "Datum promjene mora biti nakon početka trenutnog članstva",
       "invalidJmbag": "Neispravan JMBAG: {value}",
       "emailTaken": "E-mail {value} već koristi drugi korisnik",
-      "unknownGroup": "Nepoznata grupa: {value}"
+      "unknownGroup": "Nepoznata grupa: {value}",
+      "invalidSubmissionTransition": "Nedopušten prijelaz statusa predaje.",
+      "pointsExceedMaximum": "Bodovi ne mogu biti veći od maksimuma zadatka",
+      "maxPointsBelowAwarded": "Maksimalan broj bodova ne može biti manji od već dodijeljenih bodova",
+      "cannotUnpublishSubmittedAssignment": "Zadatak s predajama ne može se povući iz objave",
+      "invalidSubmissionContent": "Neispravan sadržaj predaje.",
+      "invalidFileMetadata": "Neispravni metapodaci datoteke.",
+      "pointsRequired": "Za prihvaćanje su obavezni bodovi.",
+      "invalidPoints": "Neispravna vrijednost bodova.",
+      "commentRequired": "Komentar je obavezan.",
+      "deadlineExpired": "Rok za predaju je istekao.",
+      "invalidSubmissionDecision": "Odluka o predaji nije valjana.",
+      "submissionCannotChange": "Predaja je u pregledu ili prihvaćena i ne može se mijenjati.",
+      "submissionWrongState": "Predaja nije u stanju koje omogućuje ovu radnju."
     }
   }
 }

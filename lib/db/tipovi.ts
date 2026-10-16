@@ -29,6 +29,8 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type StatusDolaska = "odsutan" | "opravdano" | "prisutan";
 
+export type StatusPredaje = "nije_predano" | "predano" | "prihvaceno" | "u_pregledu" | "vraceno_na_doradu";
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type TipGrupe = "predavanje" | "vjezbe";
@@ -113,6 +115,18 @@ export interface OsobljeKolegija {
   uloga: UlogaOsoblja;
 }
 
+export interface PovratnaInformacija {
+  autor_id: Generated<string>;
+  bodovi: Numeric | null;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  komentar: string;
+  odluka: string;
+  predaja_id: string;
+  rok_dorade: Timestamp | null;
+  verzija_broj: number;
+}
+
 export interface PravilaProlaza {
   kolegij_id: string;
   min_bodova: Generated<Numeric>;
@@ -120,6 +134,31 @@ export interface PravilaProlaza {
   min_dolaznost_vjezbi: Generated<Numeric>;
   opravdano_se_racuna: Generated<string>;
   updated_at: Generated<Timestamp>;
+}
+
+export interface Predaja {
+  bodovi: Numeric | null;
+  id: Generated<string>;
+  pregledava: string | null;
+  status: Generated<StatusPredaje>;
+  student_id: string;
+  trenutna_verzija: Generated<number>;
+  updated_at: Generated<Timestamp>;
+  zadatak_id: string;
+}
+
+export interface PredajaDatoteka {
+  datoteka_id: string;
+  verzija_id: string;
+}
+
+export interface PredajaVerzija {
+  broj: number;
+  id: Generated<string>;
+  link: string | null;
+  predaja_id: string;
+  predano_at: Generated<Timestamp>;
+  tekst: string | null;
 }
 
 export interface PredlozakKomentara {
@@ -218,6 +257,34 @@ export interface VDolaznost {
   tip: string | null;
 }
 
+export interface VPredaja {
+  bodovi: Numeric | null;
+  kasni: boolean | null;
+  kolegij_id: string | null;
+  predaja_id: string | null;
+  predano_at: Timestamp | null;
+  pregledava: string | null;
+  rok: Timestamp | null;
+  rok_prosao: boolean | null;
+  status: StatusPredaje | null;
+  student_id: string | null;
+  trenutna_verzija: number | null;
+  zadatak_id: string | null;
+}
+
+export interface VPredajaVerzija {
+  broj: number | null;
+  kasni: boolean | null;
+  link: string | null;
+  predaja_id: string | null;
+  predano_at: Timestamp | null;
+  rok_verzije: Timestamp | null;
+  student_id: string | null;
+  tekst: string | null;
+  verzija_id: string | null;
+  zadatak_id: string | null;
+}
+
 export interface Zadatak {
   created_at: Generated<Timestamp>;
   created_by: Generated<string>;
@@ -254,7 +321,11 @@ export interface DB {
   korisnik: Korisnik;
   osoblje: Osoblje;
   osoblje_kolegija: OsobljeKolegija;
+  povratna_informacija: PovratnaInformacija;
   pravila_prolaza: PravilaProlaza;
+  predaja: Predaja;
+  predaja_datoteka: PredajaDatoteka;
+  predaja_verzija: PredajaVerzija;
   predlozak_komentara: PredlozakKomentara;
   prijava_pokusaj: PrijavaPokusaj;
   produzenje_roka: ProduzenjeRoka;
@@ -265,6 +336,8 @@ export interface DB {
   upis: Upis;
   uvoz: Uvoz;
   v_dolaznost: VDolaznost;
+  v_predaja: VPredaja;
+  v_predaja_verzija: VPredajaVerzija;
   zadatak: Zadatak;
   zadatak_grupa: ZadatakGrupa;
   zadatak_prilog: ZadatakPrilog;
