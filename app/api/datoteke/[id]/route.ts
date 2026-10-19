@@ -1,20 +1,42 @@
-
 import { Readable } from "node:stream";
+import { createTranslator } from "next-intl";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 
+import { jezikIz } from "@/i18n/obrazac";
+import en from "@/messages/en.json";
+import hr from "@/messages/hr.json";
 import {
   dohvatiProfil,
   upit,
 } from "@/lib/auth/guard";
+import type { Prevoditelj } from "@/lib/i18n/prevoditelj";
+import { zaglavljePreuzimanja } from "@/lib/datoteke/zaglavlje-preuzimanja";
 import { otvori } from "@/lib/datoteke/spremiste";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type Jezik = "hr" | "en";
+
 type ParametriRute = {
   params: Promise<{ id: string }>;
 };
+
+function napraviPrevoditelj(jezik: Jezik): Prevoditelj {
+  const poruke = jezik === "en" ? en : hr;
+
+  const t = createTranslator({
+    locale: jezik,
+    messages: poruke,
+  });
+
+  return (kljuc, vrijednosti) =>
+    (t as unknown as Prevoditelj)(
+      `fileDownload.${kljuc}`,
+      vrijednosti,
+    );
+}
 
 function jeNedostajucaDatoteka(greska: unknown): boolean {
   return (
@@ -25,18 +47,15 @@ function jeNedostajucaDatoteka(greska: unknown): boolean {
   );
 }
 
-function kodiranaPutanjaNaziva(naziv: string): string {
-  return encodeURIComponent(naziv).replace(
-    /['()*]/g,
-    (znak) =>
-      `%${znak.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
-}
-
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: ParametriRute,
 ): Promise<Response> {
+  const locale = jezikIz(
+    request.nextUrl.searchParams.get("locale"),
+  ) as Jezik;
+
+  const t = napraviPrevoditelj(locale);
   const { id } = await context.params;
 
   // Ne otkrivamo postoji li zapis za nevaljan identifikator.
@@ -52,21 +71,21 @@ export async function GET(
     console.error("Greška pri provjeri sesije:", greska);
 
     return Response.json(
-      { greska: "Nije moguće provjeriti sesiju." },
+      { greska: t("sessionCheckFailed") },
       { status: 500 },
     );
   }
 
   if (!profil) {
     return Response.json(
-      { greska: "Prijavite se za preuzimanje datoteke." },
+      { greska: t("signInRequired") },
       { status: 401 },
     );
   }
 
   if (profil.moraPromijenitiLozinku) {
     return Response.json(
-      { greska: "Prije nastavka morate promijeniti lozinku." },
+      { greska: t("mustChangePassword") },
       { status: 403 },
     );
   }
@@ -75,7 +94,7 @@ export async function GET(
 
   try {
     // RLS određuje smije li trenutni korisnik vidjeti zapis.
-    // Nedostupan zapis i nepostojeći zapis daju isti odgovor.
+    // Nedostupan i nepostojeći zapis daju isti odgovor.
     datoteka = await upit((tx) =>
       tx
         .selectFrom("datoteka")
@@ -92,7 +111,7 @@ export async function GET(
     console.error("Greška pri dohvaćanju datoteke:", greska);
 
     return Response.json(
-      { greska: "Nije moguće preuzeti datoteku." },
+      { greska: t("downloadFailed") },
       { status: 500 },
     );
   }
@@ -113,20 +132,21 @@ export async function GET(
     console.error("Greška pri otvaranju datoteke:", greska);
 
     return Response.json(
-      { greska: "Nije moguće otvoriti datoteku." },
+      { greska: t("openFailed") },
       { status: 500 },
     );
   }
 
-  const tijelo = Readable.toWeb(stream) as ReadableStream<Uint8Array>;
+  const tijelo = Readable.toWeb(
+    stream,
+  ) as ReadableStream<Uint8Array>;
 
   return new Response(tijelo, {
     status: 200,
     headers: {
       "Content-Type": datoteka.mime || "application/octet-stream",
       "Content-Length": String(datoteka.velicina),
-      "Content-Disposition":
-        `attachment; filename="download"; filename*=UTF-8''${kodiranaPutanjaNaziva(datoteka.naziv)}`,
+      "Content-Disposition": zaglavljePreuzimanja(datoteka.naziv),
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, no-store",
     },

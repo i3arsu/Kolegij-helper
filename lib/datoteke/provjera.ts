@@ -19,15 +19,28 @@ const EKSTENZIJE_TEKSTA = new Set([
   "ts",
 ]);
 
-const TIPOVI_BINARNI: Record<
-  string,
-  { mime: string }
-> = {
+const TIPOVI_BINARNI: Record<string, { mime: string }> = {
   pdf: { mime: "application/pdf" },
   zip: { mime: "application/zip" },
   png: { mime: "image/png" },
   jpg: { mime: "image/jpeg" },
 };
+
+export type KljucGreskeDatoteke =
+  | "fileTypeNotAllowed"
+  | "emptyFile"
+  | "fileTooLarge"
+  | "fileContentMismatch"
+  | "disallowedTextContent"
+  | "textContainsNul"
+  | "textMustBeUtf8";
+
+export class GreskaProvjereDatoteke extends Error {
+  constructor(readonly kljuc: KljucGreskeDatoteke) {
+    super(kljuc);
+    this.name = "GreskaProvjereDatoteke";
+  }
+}
 
 export type DatotekaZaProvjeru = Pick<
   File,
@@ -51,31 +64,30 @@ export async function provjeriDatoteku(
   const binarniTip = TIPOVI_BINARNI[ekstenzija];
 
   if (!jeTekst && !binarniTip) {
-    throw new Error("Vrsta datoteke nije dopuštena.");
+    throw new GreskaProvjereDatoteke("fileTypeNotAllowed");
   }
 
   if (
     !Number.isSafeInteger(datoteka.size) ||
     datoteka.size <= 0
   ) {
-    throw new Error("Datoteka ne smije biti prazna.");
+    throw new GreskaProvjereDatoteke("emptyFile");
   }
 
   if (datoteka.size > MAX_VELICINA_DATOTEKE) {
-    throw new Error("Datoteka ne smije biti veća od 20 MB.");
+    throw new GreskaProvjereDatoteke("fileTooLarge");
   }
 
   const bajtovi = new Uint8Array(
     await datoteka.arrayBuffer(),
   );
 
-  // Provjeravamo stvarnu veličinu učitanog sadržaja.
   if (bajtovi.byteLength === 0) {
-    throw new Error("Datoteka ne smije biti prazna.");
+    throw new GreskaProvjereDatoteke("emptyFile");
   }
 
   if (bajtovi.byteLength > MAX_VELICINA_DATOTEKE) {
-    throw new Error("Datoteka ne smije biti veća od 20 MB.");
+    throw new GreskaProvjereDatoteke("fileTooLarge");
   }
 
   const otkriveniTip = await fileTypeFromBuffer(bajtovi);
@@ -85,9 +97,7 @@ export async function provjeriDatoteku(
       !otkriveniTip ||
       otkriveniTip.mime !== binarniTip.mime
     ) {
-      throw new Error(
-        "Sadržaj datoteke ne odgovara njezinoj ekstenziji.",
-      );
+      throw new GreskaProvjereDatoteke("fileContentMismatch");
     }
 
     return {
@@ -97,28 +107,18 @@ export async function provjeriDatoteku(
     };
   }
 
-
-  // Ako file-type prepozna binarni format, ne prihvaćamo
-  // sadržaj kao običnu tekstualnu datoteku.
   if (otkriveniTip) {
-    throw new Error(
-      "Sadržaj datoteke nije dopušteni tekstualni format.",
-    );
+    throw new GreskaProvjereDatoteke("disallowedTextContent");
   }
 
-  // Tekstualne datoteke ne smiju sadržavati NUL bajtove.
   if (bajtovi.includes(0)) {
-    throw new Error(
-      "Tekstualna datoteka sadrži nedopuštene bajtove.",
-    );
+    throw new GreskaProvjereDatoteke("textContainsNul");
   }
 
   try {
     new TextDecoder("utf-8", { fatal: true }).decode(bajtovi);
   } catch {
-    throw new Error(
-      "Tekstualna datoteka mora biti valjan UTF-8 tekst.",
-    );
+    throw new GreskaProvjereDatoteke("textMustBeUtf8");
   }
 
   return {

@@ -469,5 +469,37 @@
       "submissionCannotChange": "Predaja je u pregledu ili prihvaćena i ne može se mijenjati.",
       "submissionWrongState": "Predaja nije u stanju koje omogućuje ovu radnju."
     }
+  },
+  "submissionUpload": {
+    "invalidOrigin": "Neispravan zahtjev.",
+    "requestTooLarge": "Zahtjev je prevelik.",
+    "invalidBody": "Neispravan sadržaj zahtjeva.",
+    "missingContentLength": "Zahtjev mora sadržavati zaglavlje Content-Length.",
+    "multipartRequired": "Zahtjev mora biti multipart/form-data.",
+    "signInRequired": "Prijavite se za predaju zadatka.",
+    "mustChangePassword": "Prije predaje morate promijeniti lozinku.",
+    "studentsOnly": "Predaju zadatka mogu poslati samo studenti.",
+    "assignmentUnavailable": "Zadatak nije pronađen ili nemate pristup.",
+    "tooManyFiles": "Možete priložiti najviše 5 datoteka.",
+    "contentRequired": "Unesite tekst, poveznicu ili priložite datoteku.",
+    "textTooLong": "Tekst ne smije biti duži od 20.000 znakova.",
+    "linkTooLong": "Poveznica ne smije biti duža od 2.000 znakova.",
+    "invalidLink": "Unesite valjanu HTTP ili HTTPS poveznicu.",
+    "invalidFileField": "Neispravno polje datoteke.",
+    "invalidFilename": "Naziv datoteke nije valjan.",
+    "fileTypeNotAllowed": "Vrsta datoteke nije dopuštena.",
+    "emptyFile": "Datoteka ne smije biti prazna.",
+    "fileTooLarge": "Datoteka ne smije biti veća od 20 MB.",
+    "fileContentMismatch": "Sadržaj datoteke ne odgovara njezinoj ekstenziji.",
+    "disallowedTextContent": "Sadržaj datoteke nije dopušteni tekstualni format.",
+    "textContainsNul": "Tekstualna datoteka sadrži nedopuštene bajtove.",
+    "textMustBeUtf8": "Tekstualna datoteka mora biti valjan UTF-8 tekst."
+  },
+  "fileDownload": {
+    "sessionCheckFailed": "Nije moguće provjeriti sesiju.",
+    "signInRequired": "Prijavite se za preuzimanje datoteke.",
+    "mustChangePassword": "Prije nastavka morate promijeniti lozinku.",
+    "downloadFailed": "Nije moguće preuzeti datoteku.",
+    "openFailed": "Nije moguće otvoriti datoteku."
   }
 }

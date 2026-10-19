@@ -1,15 +1,20 @@
 
-import { createTranslator } from "next-intl";
 import { sql } from "kysely";
+import { createTranslator } from "next-intl";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 
-import hr from "@/messages/hr.json";
+import { jezikObrasca } from "@/i18n/obrazac";
 import en from "@/messages/en.json";
+import hr from "@/messages/hr.json";
 import { dohvatiProfil, upit } from "@/lib/auth/guard";
-import { porukaGreske } from "@/lib/http/greske";
+import {
+  GreskaAplikacije,
+  porukaGreske,
+} from "@/lib/http/greske";
 import type { Prevoditelj } from "@/lib/i18n/prevoditelj";
 import {
+  GreskaProvjereDatoteke,
   MAX_VELICINA_DATOTEKE,
   provjeriDatoteku,
 } from "@/lib/datoteke/provjera";
@@ -19,6 +24,7 @@ import {
 } from "@/lib/datoteke/spremiste";
 
 type Jezik = "hr" | "en";
+type Namespace = "errors" | "submissionUpload";
 
 type RezultatPredaje = {
   predaja_id: string;
@@ -28,77 +34,33 @@ type RezultatPredaje = {
 
 const MAX_BROJ_DATOTEKA = 5;
 
-// Granica ukupnog zahtjeva: pet datoteka od 20 MiB
-// plus 1 MiB za multipart zaglavlja i ostale podatke.
+// Pet datoteka od 20 MiB i dodatnih 1 MiB za multipart podatke.
 const MAX_VELICINA_ZAHTJEVA =
   MAX_BROJ_DATOTEKA * MAX_VELICINA_DATOTEKE + 1024 * 1024;
 
-const PORUKE = {
-  hr: {
-    neispravanOrigin: "Neispravan zahtjev.",
-    prevelikZahtjev: "Zahtjev je prevelik.",
-    neispravnoTijelo: "Neispravan sadržaj zahtjeva.",
-    multipart: "Zahtjev mora biti multipart/form-data.",
-    nemaSesije: "Prijavite se za predaju zadatka.",
-    promjenaLozinke: "Prije predaje morate promijeniti lozinku.",
-    nijeStudent: "Predaju zadatka mogu poslati samo studenti.",
-    zadatakNijeDostupan: "Zadatak nije pronađen ili nemate pristup.",
-    previseDatoteka: "Možete priložiti najviše 5 datoteka.",
-    nemaSadrzaja: "Unesite tekst, poveznicu ili priložite datoteku.",
-    tekstPredug: "Tekst ne smije biti duži od 20.000 znakova.",
-    poveznicaPreduga: "Poveznica ne smije biti duža od 2.000 znakova.",
-    neispravnaPoveznica: "Unesite valjanu HTTP ili HTTPS poveznicu.",
-    neispravnoPoljeDatoteke: "Neispravno polje datoteke.",
-    neispravanNaziv: "Naziv datoteke nije valjan.",
-  },
-  en: {
-    neispravanOrigin: "Invalid request origin.",
-    prevelikZahtjev: "The request is too large.",
-    neispravnoTijelo: "Invalid request content.",
-    multipart: "The request must use multipart/form-data.",
-    nemaSesije: "Sign in to submit the assignment.",
-    promjenaLozinke: "You must change your password before submitting.",
-    nijeStudent: "Only students can submit assignments.",
-    zadatakNijeDostupan: "Assignment not found or access denied.",
-    previseDatoteka: "You can attach at most 5 files.",
-    nemaSadrzaja: "Provide text, a link, or at least one file.",
-    tekstPredug: "Text cannot exceed 20,000 characters.",
-    poveznicaPreduga: "The link cannot exceed 2,000 characters.",
-    neispravnaPoveznica: "Enter a valid HTTP or HTTPS link.",
-    neispravnoPoljeDatoteke: "Invalid file field.",
-    neispravanNaziv: "The file name is invalid.",
-  },
-} as const;
-
-function odaberiJezik(request: NextRequest): Jezik {
-  const kolacic = request.cookies.get("NEXT_LOCALE")?.value;
-
-  if (kolacic === "hr" || kolacic === "en") {
-    return kolacic;
-  }
-
-  const prihvaceniJezik = request.headers
-    .get("accept-language")
-    ?.split(",")[0]
-    ?.split(";")[0]
-    ?.trim()
-    .toLowerCase();
-
-  return prihvaceniJezik === "en" ||
-    prihvaceniJezik?.startsWith("en-")
-    ? "en"
-    : "hr";
-}
-
-function napraviPrevoditelj(jezik: Jezik): Prevoditelj {
+function napraviPrevoditelj(
+  jezik: Jezik,
+  namespace: Namespace,
+): Prevoditelj {
   const poruke = jezik === "en" ? en : hr;
-  const t = createTranslator({ locale: jezik, messages: poruke });
+  const t = createTranslator({
+    locale: jezik,
+    messages: poruke,
+  });
 
   return (kljuc, vrijednosti) =>
     (t as unknown as Prevoditelj)(
-      `errors.${kljuc}`,
+      `${namespace}.${kljuc}`,
       vrijednosti,
     );
+}
+
+/**
+ * Prije parsiranja tijela zahtjeva još ne znamo vrijednost polja
+ * locale. Za rane odgovore zato koristimo zadani jezik aplikacije.
+ */
+function raniPrevoditelj(namespace: Namespace): Prevoditelj {
+  return napraviPrevoditelj("hr", namespace);
 }
 
 function jsonGreska(poruka: string, status: number): Response {
@@ -109,7 +71,7 @@ function procitajPolje(
   forma: FormData,
   naziv: string,
   maksimum: number,
-  porukaPredugogPolja: string,
+  kljucPredugogPolja: "textTooLong" | "linkTooLong",
 ): string | null {
   const vrijednost = forma.get(naziv);
 
@@ -118,13 +80,13 @@ function procitajPolje(
   }
 
   if (typeof vrijednost !== "string") {
-    throw new Error(PORUKE.hr.neispravnoTijelo);
+    throw new GreskaAplikacije("invalidBody");
   }
 
   const tekst = vrijednost.trim();
 
   if (Array.from(tekst).length > maksimum) {
-    throw new Error(porukaPredugogPolja);
+    throw new GreskaAplikacije(kljucPredugogPolja);
   }
 
   return tekst || null;
@@ -137,10 +99,25 @@ function siguranNazivDatoteke(naziv: string): string {
     .slice(0, 255);
 
   if (!siguran) {
-    throw new Error(PORUKE.hr.neispravanNaziv);
+    throw new GreskaAplikacije("invalidFilename");
   }
 
   return siguran;
+}
+
+function porukaValidacije(
+  greska: unknown,
+  t: Prevoditelj,
+): string {
+  if (greska instanceof GreskaAplikacije) {
+    return t(greska.kljuc, greska.vrijednosti);
+  }
+
+  if (greska instanceof GreskaProvjereDatoteke) {
+    return t(greska.kljuc);
+  }
+
+  return t("invalidBody");
 }
 
 function jeRezultatPredaje(
@@ -192,7 +169,7 @@ function statusGreske(greska: unknown): number {
 
 /**
  * Čišćenje ne smije prekinuti odgovor nakon uspješne transakcije.
- * Eventualni neuspjeh brišanja bilježi se za naknadnu provjeru.
+ * Eventualni neuspjeh bilježi se za naknadnu provjeru.
  */
 async function sigurnoObrisiPutanje(
   putanje: string[],
@@ -214,78 +191,78 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ zadatakId: string }> },
 ) {
-  const jezik = odaberiJezik(request);
-  const poruke = PORUKE[jezik];
-  const t = napraviPrevoditelj(jezik);
+  const tRaniUnos = raniPrevoditelj("submissionUpload");
+  const tRaneGreske = raniPrevoditelj("errors");
 
-  // Zahtjev mora potjecati s istog origin-a kao aplikacija.
+  // Provjera origin-a prije čitanja tijela zahtjeva.
   const origin = request.headers.get("origin");
 
   if (!origin || origin !== request.nextUrl.origin) {
-    return jsonGreska(poruke.neispravanOrigin, 403);
+    return jsonGreska(tRaniUnos("invalidOrigin"), 403);
   }
 
-  // Ograničavamo veličinu zahtjeva prije parsiranja multipart tijela.
+  // Duljina mora biti poznata prije poziva request.formData().
   const contentLength = request.headers.get("content-length");
 
-  if (contentLength !== null) {
-    if (!/^\d+$/.test(contentLength)) {
-      return jsonGreska(poruke.neispravnoTijelo, 400);
-    }
-
-    const velicinaZahtjeva = Number(contentLength);
-
-    if (!Number.isSafeInteger(velicinaZahtjeva)) {
-      return jsonGreska(poruke.neispravnoTijelo, 400);
-    }
-
-    if (velicinaZahtjeva > MAX_VELICINA_ZAHTJEVA) {
-      return jsonGreska(poruke.prevelikZahtjev, 413);
-    }
+  if (contentLength === null) {
+    return jsonGreska(tRaniUnos("missingContentLength"), 411);
   }
 
+  if (!/^\d+$/.test(contentLength)) {
+    return jsonGreska(tRaniUnos("invalidBody"), 400);
+  }
+
+  const velicinaZahtjeva = Number(contentLength);
+
+  if (!Number.isSafeInteger(velicinaZahtjeva)) {
+    return jsonGreska(tRaniUnos("invalidBody"), 400);
+  }
+
+  if (velicinaZahtjeva > MAX_VELICINA_ZAHTJEVA) {
+    return jsonGreska(tRaniUnos("requestTooLarge"), 413);
+  }
+
+  const contentType = request.headers.get("content-type");
+
   if (
-    !request.headers
-      .get("content-type")
-      ?.toLowerCase()
-      .startsWith("multipart/form-data")
+    !contentType ||
+    !/^multipart\/form-data(?:\s*;|$)/i.test(contentType)
   ) {
-    return jsonGreska(poruke.multipart, 415);
+    return jsonGreska(tRaniUnos("multipartRequired"), 415);
   }
 
   const { zadatakId } = await context.params;
   const provjeraId = z.uuid().safeParse(zadatakId);
 
   if (!provjeraId.success) {
-    return jsonGreska(poruke.neispravnoTijelo, 400);
+    return jsonGreska(tRaniUnos("invalidBody"), 400);
   }
 
-  // API vraća JSON umjesto preusmjeravanja neprijavljenog korisnika.
+  // Autentikacija prije parsiranja multipart sadržaja.
   let profil: Awaited<ReturnType<typeof dohvatiProfil>>;
 
   try {
     profil = await dohvatiProfil();
   } catch (greska) {
     return jsonGreska(
-      porukaGreske(greska, t),
+      porukaGreske(greska, tRaneGreske),
       statusGreske(greska),
     );
   }
 
   if (!profil) {
-    return jsonGreska(poruke.nemaSesije, 401);
+    return jsonGreska(tRaniUnos("signInRequired"), 401);
   }
 
   if (profil.moraPromijenitiLozinku) {
-    return jsonGreska(poruke.promjenaLozinke, 403);
+    return jsonGreska(tRaniUnos("mustChangePassword"), 403);
   }
 
   if (!profil.student) {
-    return jsonGreska(poruke.nijeStudent, 403);
+    return jsonGreska(tRaniUnos("studentsOnly"), 403);
   }
 
-  // Dohvaćamo kolegij za sigurnu lokaciju spremanja.
-  // RLS i dalje odlučuje smije li prijavljeni student vidjeti zadatak.
+  // RLS odlučuje smije li student pristupiti zadatku.
   let zadatak: { kolegij_id: string } | undefined;
 
   try {
@@ -298,13 +275,13 @@ export async function POST(
     );
   } catch (greska) {
     return jsonGreska(
-      porukaGreske(greska, t),
+      porukaGreske(greska, tRaneGreske),
       statusGreske(greska),
     );
   }
 
   if (!zadatak) {
-    return jsonGreska(poruke.zadatakNijeDostupan, 404);
+    return jsonGreska(tRaniUnos("assignmentUnavailable"), 404);
   }
 
   let forma: FormData;
@@ -312,8 +289,13 @@ export async function POST(
   try {
     forma = await request.formData();
   } catch {
-    return jsonGreska(poruke.neispravnoTijelo, 400);
+    return jsonGreska(tRaniUnos("invalidBody"), 400);
   }
+
+  // Za sve odgovore nakon parsiranja koristimo jezik polja locale.
+  const jezik = jezikObrasca(forma) as Jezik;
+  const tUnos = napraviPrevoditelj(jezik, "submissionUpload");
+  const tGreske = napraviPrevoditelj(jezik, "errors");
 
   let tekst: string | null;
   let link: string | null;
@@ -326,14 +308,14 @@ export async function POST(
       forma,
       "tekst",
       20_000,
-      poruke.tekstPredug,
+      "textTooLong",
     );
 
     link = procitajPolje(
       forma,
       "link",
       2_000,
-      poruke.poveznicaPreduga,
+      "linkTooLong",
     );
 
     if (link) {
@@ -342,11 +324,11 @@ export async function POST(
       try {
         url = new URL(link);
       } catch {
-        throw new Error(poruke.neispravnaPoveznica);
+        throw new GreskaAplikacije("invalidLink");
       }
 
       if (url.protocol !== "http:" && url.protocol !== "https:") {
-        throw new Error(poruke.neispravnaPoveznica);
+        throw new GreskaAplikacije("invalidLink");
       }
     }
 
@@ -354,7 +336,7 @@ export async function POST(
 
     for (const stavka of forma.getAll("datoteke")) {
       if (typeof stavka === "string") {
-        throw new Error(poruke.neispravnoPoljeDatoteke);
+        throw new GreskaAplikacije("invalidFileField");
       }
 
       // Preglednik može poslati prazno polje za odabir datoteke.
@@ -366,19 +348,14 @@ export async function POST(
     }
 
     if (datoteke.length > MAX_BROJ_DATOTEKA) {
-      throw new Error(poruke.previseDatoteka);
+      throw new GreskaAplikacije("tooManyFiles");
     }
 
     if (!tekst && !link && datoteke.length === 0) {
-      throw new Error(poruke.nemaSadrzaja);
+      throw new GreskaAplikacije("contentRequired");
     }
   } catch (greska) {
-    return jsonGreska(
-      greska instanceof Error
-        ? greska.message
-        : poruke.neispravnoTijelo,
-      400,
-    );
+    return jsonGreska(porukaValidacije(greska, tUnos), 400);
   }
 
   const provjereneDatoteke: Array<{
@@ -399,12 +376,7 @@ export async function POST(
       });
     }
   } catch (greska) {
-    return jsonGreska(
-      greska instanceof Error
-        ? greska.message
-        : poruke.neispravnoTijelo,
-      400,
-    );
+    return jsonGreska(porukaValidacije(greska, tUnos), 400);
   }
 
   const novePutanje: string[] = [];
@@ -438,34 +410,31 @@ export async function POST(
       });
     }
 
-    // SQL funkcija i sve povezane promjene izvode se unutar
-    // transakcije prijavljenog korisnika.
+    // SQL funkcija i sve povezane promjene izvode se
+    // u transakciji prijavljenog korisnika.
     const rezultat = await upit(async (tx) => {
+      const odgovor = await sql<{ rezultat: unknown }>`
+        select private.predaj_zadatak(
+          ${zadatakId}::uuid,
+          ${tekst}::text,
+          ${link}::text,
+          ${JSON.stringify(metapodaci)}::jsonb
+        ) as rezultat
+      `.execute(tx);
 
-const odgovor = await sql<{ rezultat: unknown }>`
-  select private.predaj_zadatak(
-    ${zadatakId}::uuid,
-    ${tekst}::text,
-    ${link}::text,
-    ${JSON.stringify(metapodaci)}::jsonb
-  ) as rezultat
-`.execute(tx);
+      const red = odgovor.rows[0];
 
-const red = odgovor.rows[0];
+      if (!red || !jeRezultatPredaje(red.rezultat)) {
+        throw new GreskaAplikacije("tryAgain");
+      }
 
-if (!red || !jeRezultatPredaje(red.rezultat)) {
-  throw new Error("Neispravan odgovor funkcije predaje.");
-}
-
-return red.rezultat;
-
+      return red.rezultat;
     });
 
-    // upit() je završio transakciju. Nove datoteke više se
-    // ne smiju brisati kao dio naknadnog čišćenja.
+    // Nakon uspješne transakcije nove datoteke ne brišemo.
     transakcijaUspjela = true;
 
-    // SQL vraća samo putanje datoteka koje više nisu korištene.
+    // SQL vraća samo putanje datoteka koje se više ne koriste.
     await sigurnoObrisiPutanje(rezultat.uklonjene_putanje);
 
     return Response.json({
@@ -473,14 +442,14 @@ return red.rezultat;
       verzija: rezultat.verzija,
     });
   } catch (greska) {
-    // Ako transakcija nije uspjela, uklanjamo sve datoteke
+    // Ako transakcija nije uspjela, uklanjamo datoteke
     // koje je ova HTTP operacija upravo zapisala.
     if (!transakcijaUspjela) {
       await sigurnoObrisiPutanje(novePutanje);
     }
 
     return jsonGreska(
-      porukaGreske(greska, t),
+      porukaGreske(greska, tGreske),
       statusGreske(greska),
     );
   }

@@ -13,6 +13,7 @@ function napraviDatoteku(
   prijavljenaVeličina = sadržaj.byteLength,
 ): DatotekaZaProvjeru {
   const kopija = new Uint8Array(sadržaj);
+
   return {
     name,
     size: prijavljenaVeličina,
@@ -58,7 +59,9 @@ describe("provjera datoteka", () => {
       provjeriDatoteku(
         napraviDatoteku("prazno.txt", new Uint8Array()),
       ),
-    ).rejects.toThrow("Datoteka ne smije biti prazna.");
+    ).rejects.toMatchObject({
+      kljuc: "emptyFile",
+    });
   });
 
   it("odbija datoteku veću od 20 MiB", async () => {
@@ -68,9 +71,11 @@ describe("provjera datoteka", () => {
       MAX_VELICINA_DATOTEKE + 1,
     );
 
-    await expect(provjeriDatoteku(datoteka)).rejects.toThrow(
-      "Datoteka ne smije biti veća od 20 MB.",
-    );
+    await expect(
+      provjeriDatoteku(datoteka),
+    ).rejects.toMatchObject({
+      kljuc: "fileTooLarge",
+    });
   });
 
   it("odbija nedopuštenu ekstenziju", async () => {
@@ -81,7 +86,9 @@ describe("provjera datoteka", () => {
           new Uint8Array([1, 2, 3]),
         ),
       ),
-    ).rejects.toThrow("Vrsta datoteke nije dopuštena.");
+    ).rejects.toMatchObject({
+      kljuc: "fileTypeNotAllowed",
+    });
   });
 
   it("odbija PNG sadržaj preimenovan u PDF", async () => {
@@ -96,9 +103,9 @@ describe("provjera datoteka", () => {
       provjeriDatoteku(
         napraviDatoteku("slika.pdf", pngPotpis),
       ),
-    ).rejects.toThrow(
-      "Sadržaj datoteke ne odgovara njezinoj ekstenziji.",
-    );
+    ).rejects.toMatchObject({
+      kljuc: "fileContentMismatch",
+    });
   });
 
   it("odbija tekstualnu datoteku koja sadrži NUL bajt", async () => {
@@ -109,9 +116,9 @@ describe("provjera datoteka", () => {
           new Uint8Array([65, 0, 66]),
         ),
       ),
-    ).rejects.toThrow(
-      "Tekstualna datoteka sadrži nedopuštene bajtove.",
-    );
+    ).rejects.toMatchObject({
+      kljuc: "textContainsNul",
+    });
   });
 
   it("odbija nevaljan UTF-8 tekst", async () => {
@@ -122,9 +129,9 @@ describe("provjera datoteka", () => {
           new Uint8Array([0xc3, 0x28]),
         ),
       ),
-    ).rejects.toThrow(
-      "Tekstualna datoteka mora biti valjan UTF-8 tekst.",
-    );
+    ).rejects.toMatchObject({
+      kljuc: "textMustBeUtf8",
+    });
   });
 
   it("odbija binarni sadržaj s tekstualnom ekstenzijom", async () => {
@@ -139,8 +146,8 @@ describe("provjera datoteka", () => {
       provjeriDatoteku(
         napraviDatoteku("slika.txt", pngPotpis),
       ),
-    ).rejects.toThrow(
-      "Sadržaj datoteke nije dopušteni tekstualni format.",
-    );
+    ).rejects.toMatchObject({
+      kljuc: "disallowedTextContent",
+    });
   });
 });
