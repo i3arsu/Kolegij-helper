@@ -10,8 +10,18 @@
 		Permissions-Policy "camera=(self), geolocation=(), microphone=()"
 		-Server
 	}
-	request_body {
-		max_size 25MB
+
+	@predaje path /api/predaje/*
+	handle @predaje {
+		request_body {
+			max_size 120MB
+		}
+		reverse_proxy app:3000
 	}
-	reverse_proxy app:3000
+	handle {
+		request_body {
+			max_size 25MB
+		}
+		reverse_proxy app:3000
+	}
 }

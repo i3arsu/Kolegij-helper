@@ -469,5 +469,37 @@
       "pointsRequired": "Points are required to accept a submission.",
       "invalidPoints": "Points must be zero or greater."
     }
+  },
+  "submissionUpload": {
+    "invalidOrigin": "Invalid request origin.",
+    "requestTooLarge": "The request is too large.",
+    "invalidBody": "Invalid request content.",
+    "missingContentLength": "The request must include a Content-Length header.",
+    "multipartRequired": "The request must use multipart/form-data.",
+    "signInRequired": "Sign in to submit the assignment.",
+    "mustChangePassword": "You must change your password before submitting.",
+    "studentsOnly": "Only students can submit assignments.",
+    "assignmentUnavailable": "Assignment not found or access denied.",
+    "tooManyFiles": "You can attach at most 5 files.",
+    "contentRequired": "Provide text, a link, or at least one file.",
+    "textTooLong": "Text cannot exceed 20,000 characters.",
+    "linkTooLong": "The link cannot exceed 2,000 characters.",
+    "invalidLink": "Enter a valid HTTP or HTTPS link.",
+    "invalidFileField": "Invalid file field.",
+    "invalidFilename": "The file name is invalid.",
+    "fileTypeNotAllowed": "This file type is not allowed.",
+    "emptyFile": "The file cannot be empty.",
+    "fileTooLarge": "The file cannot exceed 20 MiB.",
+    "fileContentMismatch": "The file content does not match its extension.",
+    "disallowedTextContent": "The file content is not an allowed text format.",
+    "textContainsNul": "The text file contains disallowed bytes.",
+    "textMustBeUtf8": "The text file must contain valid UTF-8 text."
+  },
+  "fileDownload": {
+    "sessionCheckFailed": "Unable to verify the session.",
+    "signInRequired": "Sign in to download the file.",
+    "mustChangePassword": "You must change your password before continuing.",
+    "downloadFailed": "Unable to download the file.",
+    "openFailed": "Unable to open the file."
   }
 }

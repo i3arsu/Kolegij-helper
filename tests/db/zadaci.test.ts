@@ -185,6 +185,51 @@ describe("prava nastavnika i asistenta", () => {
   });
 });
 
+describe("vlasnistvo datoteka zadatka", () => {
+  it("nastavnik ne može kao prilog dodati datoteku studentske predaje", async () => {
+    const datotekaId = await dodajTestnuDatoteku(
+      s.S1.korisnik,
+      "studentska-predaja.pdf",
+    );
+
+    await dodajPredajuSDatotekom(datotekaId);
+
+    const kod = await greskaKod(
+      o.kao(s.N.korisnik, (tx) =>
+        tx
+          .insertInto("zadatak_prilog")
+          .values({
+            zadatak_id: z.Z.cijeliKolegij,
+            datoteka_id: datotekaId,
+          })
+          .execute(),
+      ),
+    );
+
+    expect(kod).toBe("42501");
+  });
+
+  it("nastavnik može kao prilog dodati vlastitu datoteku", async () => {
+    const datotekaId = await dodajTestnuDatoteku(
+      s.N.korisnik,
+      "nastavnikov-prilog.pdf",
+    );
+
+    const prilog = await o.kao(s.N.korisnik, (tx) =>
+      tx
+        .insertInto("zadatak_prilog")
+        .values({
+          zadatak_id: z.Z.cijeliKolegij,
+          datoteka_id: datotekaId,
+        })
+        .returning("datoteka_id")
+        .executeTakeFirstOrThrow(),
+    );
+
+    expect(prilog.datoteka_id).toBe(datotekaId);
+  });
+});
+
 describe("brisanje zadataka", () => {
   it("nastavnik može obrisati skicu, ali ne i objavljeni zadatak", async () => {
     // Napravimo zasebnu skicu kako test ne bi ovisio o drugim testovima.
@@ -265,3 +310,55 @@ describe("RLS bez korisničkog konteksta", () => {
     ).toBe(true);
   });
 });
+
+async function dodajTestnuDatoteku(
+  vlasnik: string,
+  naziv: string,
+) {
+  return (
+    await o.vlasnik
+      .insertInto("datoteka")
+      .values({
+        putanja: `test/${vlasnik}/${naziv}`,
+        naziv,
+        velicina: 128,
+        mime: "application/pdf",
+        sha256: "a".repeat(64),
+        vlasnik,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow()
+  ).id;
+}
+
+async function dodajPredajuSDatotekom(
+  datotekaId: string,
+) {
+  const predaja = await o.vlasnik
+    .insertInto("predaja")
+    .values({
+      zadatak_id: z.Z.cijeliKolegij,
+      student_id: s.S1.student,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  const verzija = await o.vlasnik
+    .insertInto("predaja_verzija")
+    .values({
+      predaja_id: predaja.id,
+      broj: 1,
+      tekst: null,
+      link: null,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  await o.vlasnik
+    .insertInto("predaja_datoteka")
+    .values({
+      verzija_id: verzija.id,
+      datoteka_id: datotekaId,
+    })
+    .execute();
+}
