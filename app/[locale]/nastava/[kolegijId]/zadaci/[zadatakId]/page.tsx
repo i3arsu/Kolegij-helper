@@ -1,10 +1,6 @@
 
 import { notFound } from "next/navigation";
-import {
-  getLocale,
-  getTranslations,
-} from "next-intl/server";
-
+import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import {
@@ -14,41 +10,33 @@ import {
   Oznaka,
 } from "@/components/ui";
 
-import {
-  upit,
-  zahtijevajOsoblje,
-} from "@/lib/auth/guard";
-
+import { upit, zahtijevajOsoblje } from "@/lib/auth/guard";
 import {
   formatDatumVrijeme,
   formatVrijeme,
   isoDatum,
 } from "@/lib/domena/vrijeme";
+import { grupeSAsistentima } from "@/lib/servisi/kolegij";
+import { predajeZadatka } from "@/lib/servisi/predaje-zadatka";
+import { zadatakKolegija } from "@/lib/servisi/zadaci";
 
-import {
-  grupeSAsistentima,
-} from "@/lib/servisi/kolegij";
-
-import {
-  zadatakKolegija,
-} from "@/lib/servisi/zadaci";
-
-import {
-  FormaObjave,
-  FormaUrediZadatka,
-} from "./forma";
+import { FormaObjave, FormaUrediZadatka } from "./forma";
+import { PredajeZadatkaTablica } from "./predaje-tablica";
 
 export default async function DetaljiZadatka({
   params,
+  searchParams,
 }: PageProps<"/[locale]/nastava/[kolegijId]/zadaci/[zadatakId]">) {
-
   const { kolegijId, zadatakId } = await params;
+  const sp = await searchParams;
 
+  // Provjeravamo ID prije izvođenja upita prema bazi.
   if (!z.uuid().safeParse(zadatakId).success) {
     notFound();
   }
 
-const uloga = await zahtijevajOsoblje(kolegijId);
+  // Omogućuje pristup nastavniku i ovlaštenom asistentu.
+  const uloga = await zahtijevajOsoblje(kolegijId);
 
   const rezultat = await upit(async (tx) => {
     const zadatak = await zadatakKolegija(
@@ -57,19 +45,34 @@ const uloga = await zahtijevajOsoblje(kolegijId);
       zadatakId,
     );
 
-    if (!zadatak) return null;
+    if (!zadatak) {
+      return null;
+    }
 
+    // Samo nastavnik treba podatke za obrazac uređivanja.
     const grupe =
       uloga === "nastavnik"
         ? await grupeSAsistentima(tx, kolegijId)
         : [];
 
-    return { zadatak, grupe };
+    // Predaje postoje samo za objavljene zadatke.
+    const predaje =
+      zadatak.objavljen_at === null
+        ? []
+        : await predajeZadatka(tx, kolegijId, zadatakId);
+
+    return {
+      zadatak,
+      grupe,
+      predaje,
+    };
   });
 
-  if (!rezultat) notFound();
+  if (!rezultat) {
+    notFound();
+  }
 
-  const { zadatak, grupe } = rezultat;
+  const { zadatak, grupe, predaje } = rezultat;
 
   const t = await getTranslations("teacherAssignmentForm");
   const tLista = await getTranslations("teacherAssignments");
@@ -81,6 +84,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
     if (metoda === "datoteka") return t("methods.datoteka");
     if (metoda === "link") return t("methods.link");
     if (metoda === "tekst") return t("methods.tekst");
+
     return metoda;
   });
 
@@ -97,6 +101,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
         {zadatak.naslov}
       </Naslov>
 
+      {/* Detalji zadatka */}
       <Kartica naslov={t("details")}>
         <div className="space-y-4">
           <div>
@@ -115,6 +120,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
             <h3 className="text-sm font-medium">
               {t("fields.description")}
             </h3>
+
             <p className="mt-1 whitespace-pre-wrap text-sm">
               {zadatak.opis || "—"}
             </p>
@@ -125,6 +131,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
               <dt className="font-medium">
                 {t("fields.deadlineDate")}
               </dt>
+
               <dd className="mt-1">
                 {formatDatumVrijeme(zadatak.rok, jezik)}
               </dd>
@@ -134,6 +141,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
               <dt className="font-medium">
                 {t("fields.maxPoints")}
               </dt>
+
               <dd className="mt-1">
                 {Number(zadatak.max_bodova)}
               </dd>
@@ -143,6 +151,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
               <dt className="font-medium">
                 {t("methodsTitle")}
               </dt>
+
               <dd className="mt-1">
                 {metode.join(", ")}
               </dd>
@@ -152,6 +161,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
               <dt className="font-medium">
                 {t("audience")}
               </dt>
+
               <dd className="mt-1">
                 {zadatak.za_cijeli_kolegij
                   ? t("wholeCourse")
@@ -165,6 +175,7 @@ const uloga = await zahtijevajOsoblje(kolegijId);
               <dt className="font-medium">
                 {t("allowLate")}
               </dt>
+
               <dd className="mt-1">
                 {zadatak.dopusti_kasnu_predaju ? "✓" : "—"}
               </dd>
@@ -173,6 +184,17 @@ const uloga = await zahtijevajOsoblje(kolegijId);
         </div>
       </Kartica>
 
+      {/* Pregled predaja za nastavnika i asistenta */}
+      <PredajeZadatkaTablica
+        kolegijId={kolegijId}
+        zadatakId={zadatakId}
+        objavljen={zadatak.objavljen_at !== null}
+        predaje={predaje}
+        searchParams={sp}
+        jezik={jezik}
+      />
+
+      {/* Uređivanje i objava dostupni su samo nastavniku */}
       {uloga === "nastavnik" && (
         <>
           <Kartica naslov={t("editTitle")}>
