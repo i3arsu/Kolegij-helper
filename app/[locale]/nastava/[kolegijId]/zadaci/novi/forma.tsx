@@ -41,17 +41,6 @@ export function FormaZadatka({
       {},
     );
 
-  if (stanje.ok) {
-    return (
-      <div className="space-y-3">
-        <Poruka vrsta="uspjeh">{stanje.ok}</Poruka>
-        <GumbLink href={`/nastava/${kolegijId}/zadaci`}>
-          {t("backToList")}
-        </GumbLink>
-      </div>
-    );
-  }
-
   return (
     <form action={akcija} className="space-y-5">
       <input type="hidden" name="locale" value={locale} />

@@ -293,7 +293,7 @@ export async function objaviZadatak(
 
   const rezultat = await tx
     .updateTable("zadatak")
-    .set({ objavljen_at: new Date() })
+    .set({ objavljen_at: sql<Date>`now()` })
     .where("id", "=", zadatakId)
     .where("kolegij_id", "=", kolegijId)
     .where("objavljen_at", "is", null)

@@ -5,6 +5,8 @@ import {
   getTranslations,
 } from "next-intl/server";
 
+import { z } from "zod";
+
 import {
   GumbLink,
   Kartica,
@@ -39,9 +41,14 @@ import {
 export default async function DetaljiZadatka({
   params,
 }: PageProps<"/[locale]/nastava/[kolegijId]/zadaci/[zadatakId]">) {
+
   const { kolegijId, zadatakId } = await params;
 
-  const uloga = await zahtijevajOsoblje(kolegijId);
+  if (!z.uuid().safeParse(zadatakId).success) {
+    notFound();
+  }
+
+const uloga = await zahtijevajOsoblje(kolegijId);
 
   const rezultat = await upit(async (tx) => {
     const zadatak = await zadatakKolegija(
