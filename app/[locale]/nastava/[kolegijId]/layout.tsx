@@ -21,6 +21,7 @@ export default async function KolegijLayout({
     { put: "", naziv: t("summary") },
     { put: "studenti", naziv: t("students") },
     { put: "termini", naziv: t("sessions") },
+    { put: "zadaci", naziv: t("assignments") },
     { put: "grupe", naziv: t("groups") },
     ...(uloga === "nastavnik"
       ? [

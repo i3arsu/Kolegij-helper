@@ -64,7 +64,8 @@
     "csvImport": "Uvoz CSV",
     "settings": "Postavke",
     "lecturer": "nastavnik",
-    "assistant": "asistent"
+    "assistant": "asistent",
+    "assignments": "Zadaci"
   },
   "studentAttendance": {
     "session": "Termin",
@@ -446,6 +447,10 @@
     "endAfterStart": "Kraj termina mora biti nakon početka.",
     "endDateAfterStart": "Završni datum mora biti nakon početnog.",
     "tooManySessions": "Najviše {max} termina odjednom.",
+    "assignmentGroupsRequired": "Odaberite barem jednu grupu za zadatak.",
+    "invalidAssignmentGroups": "Jedna ili više odabranih grupa ne pripada ovom kolegiju.",
+    "assignmentNotFound": "Zadatak nije pronađen ili mu nemate pristup.",
+    "assignmentAlreadyPublished": "Zadatak je već objavljen.",
     "db": {
       "studentNotEnrolled": "Student nije upisan na kolegij",
       "studentNotInGroup": "Student nije član grupe u vrijeme termina",
@@ -501,5 +506,75 @@
     "mustChangePassword": "Prije nastavka morate promijeniti lozinku.",
     "downloadFailed": "Nije moguće preuzeti datoteku.",
     "openFailed": "Nije moguće otvoriti datoteku."
+  },
+  "teacherAssignments": {
+    "title": "Zadaci",
+    "subtitle": "Pregled zadataka, rokova i stanja predaja.",
+    "newAssignment": "Novi zadatak",
+    "empty": "Još nema zadataka.",
+    "wholeCourse": "Cijeli kolegij",
+    "draft": "Skica",
+    "published": "Objavljeno",
+    "columns": {
+      "assignment": "Zadatak",
+      "deadline": "Rok",
+      "audience": "Dodijeljeno",
+      "status": "Status",
+      "notSubmitted": "Nije predano",
+      "submitted": "Predano",
+      "inReview": "U pregledu",
+      "returned": "Vraćeno na doradu",
+      "accepted": "Prihvaćeno"
+    }
+  },
+  "teacherAssignmentForm": {
+    "title": "Novi zadatak",
+    "subtitle": "Izradite skicu zadatka za kolegij.",
+    "details": "Podaci zadatka",
+    "editTitle": "Uredi zadatak",
+    "publish": "Objavi zadatak",
+    "publishing": "Objavljivanje…",
+    "publishHelp": "Objavom zadatak postaje vidljiv studentima kojima je dodijeljen.",
+    "saveChanges": "Spremi promjene",
+    "fields": {
+      "title": "Naslov",
+      "description": "Opis",
+      "deadlineDate": "Datum roka",
+      "deadlineTime": "Vrijeme roka",
+      "maxPoints": "Maksimalni broj bodova"
+    },
+    "methodsTitle": "Dopušteni načini predaje",
+    "methods": {
+      "datoteka": "Datoteka",
+      "link": "Poveznica",
+      "tekst": "Tekst"
+    },
+    "allowLate": "Dopusti zakašnjele predaje",
+    "audience": "Kome je zadatak namijenjen?",
+    "wholeCourse": "Cijeli kolegij",
+    "selectedGroups": "Odabrane grupe",
+    "groupsHelp": "Odaberite jednu ili više grupa.",
+    "noGroups": "Na kolegiju još nema grupa. Najprije ih izradite na stranici Grupe.",
+    "createDraft": "Spremi skicu",
+    "cancel": "Odustani",
+    "saving": "Spremanje…",
+    "created": "Skica zadatka je spremljena.",
+    "updated": "Zadatak je ažuriran.",
+    "publishedSuccessfully": "Zadatak je objavljen.",
+    "backToList": "Natrag na zadatke",
+    "validation": {
+      "titleRequired": "Unesite naslov zadatka.",
+      "titleMax": "Naslov ne smije biti duži od 200 znakova.",
+      "descriptionMax": "Opis ne smije biti duži od 20.000 znakova.",
+      "invalidDate": "Odaberite valjan datum.",
+      "invalidTime": "Odaberite valjano vrijeme.",
+      "invalidLocalTime": "Odabrano vrijeme ne postoji u vremenskoj zoni Zagreba.",
+      "maxPointsPositive": "Maksimalni broj bodova mora biti veći od nule.",
+      "maxPointsMax": "Maksimalni broj bodova ne smije biti veći od 9999,99.",
+      "maxPointsPrecision": "Maksimalni broj bodova može imati najviše dvije decimale.",
+      "methodRequired": "Odaberite barem jedan način predaje.",
+      "groupsRequired": "Odaberite barem jednu grupu.",
+      "invalidAssignment": "Neispravan zadatak."
+    }
   }
 }
