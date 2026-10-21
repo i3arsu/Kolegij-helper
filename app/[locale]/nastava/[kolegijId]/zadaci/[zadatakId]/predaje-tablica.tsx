@@ -186,8 +186,8 @@ export async function PredajeZadatkaTablica({
         </form>
 
         <p className="text-sm text-slate-600">
-          {t("resultsCount", {
-            shown: filtrirane.length,
+            {t("resultsCount", {
+            filtered: filtrirane.length,
             total: predaje.length,
           })}
         </p>
