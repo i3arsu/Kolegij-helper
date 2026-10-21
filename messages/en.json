@@ -64,7 +64,8 @@
     "csvImport": "CSV import",
     "settings": "Settings",
     "lecturer": "Lecturer",
-    "assistant": "Teaching assistant"
+    "assistant": "Teaching assistant",
+    "assignments": "Assignments"
   },
   "studentAttendance": {
     "session": "Session",
@@ -446,6 +447,10 @@
     "endAfterStart": "The session must end after it starts.",
     "endDateAfterStart": "The end date must be after the start date.",
     "tooManySessions": "At most {max} sessions at once.",
+    "assignmentGroupsRequired": "Select at least one group for the assignment.",
+    "invalidAssignmentGroups": "One or more selected groups do not belong to this course.",
+    "assignmentNotFound": "The assignment was not found or you do not have access.",
+    "assignmentAlreadyPublished": "The assignment has already been published.",
     "db": {
       "studentNotEnrolled": "The student is not enrolled in the course",
       "studentNotInGroup": "The student was not a member of the group at the time of the session",
@@ -501,5 +506,75 @@
     "mustChangePassword": "You must change your password before continuing.",
     "downloadFailed": "Unable to download the file.",
     "openFailed": "Unable to open the file."
+  },
+  "teacherAssignments": {
+    "title": "Assignments",
+    "subtitle": "Overview of assignments, deadlines and submission statuses.",
+    "newAssignment": "New assignment",
+    "empty": "There are no assignments yet.",
+    "wholeCourse": "Whole course",
+    "draft": "Draft",
+    "published": "Published",
+    "columns": {
+      "assignment": "Assignment",
+      "deadline": "Deadline",
+      "audience": "Assigned to",
+      "status": "Status",
+      "notSubmitted": "Not submitted",
+      "submitted": "Submitted",
+      "inReview": "Under review",
+      "returned": "Returned for revision",
+      "accepted": "Accepted"
+    }
+  },
+  "teacherAssignmentForm": {
+    "title": "New assignment",
+    "subtitle": "Create a draft assignment for the course.",
+    "details": "Assignment details",
+    "editTitle": "Edit assignment",
+    "publish": "Publish assignment",
+    "publishing": "Publishing…",
+    "publishHelp": "Publishing makes this assignment visible to the students it is assigned to.",
+    "saveChanges": "Save changes",
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "deadlineDate": "Deadline date",
+      "deadlineTime": "Deadline time",
+      "maxPoints": "Maximum points"
+    },
+    "methodsTitle": "Allowed submission methods",
+    "methods": {
+      "datoteka": "File",
+      "link": "Link",
+      "tekst": "Text"
+    },
+    "allowLate": "Allow late submissions",
+    "audience": "Who is this assignment for?",
+    "wholeCourse": "Whole course",
+    "selectedGroups": "Selected groups",
+    "groupsHelp": "Select one or more groups.",
+    "noGroups": "There are no groups in this course yet. Create them on the Groups page first.",
+    "createDraft": "Save draft",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "created": "The assignment draft has been saved.",
+    "updated": "The assignment has been updated.",
+    "publishedSuccessfully": "The assignment has been published.",
+    "backToList": "Back to assignments",
+    "validation": {
+      "titleRequired": "Enter an assignment title.",
+      "titleMax": "The title cannot exceed 200 characters.",
+      "descriptionMax": "The description cannot exceed 20,000 characters.",
+      "invalidDate": "Select a valid date.",
+      "invalidTime": "Select a valid time.",
+      "invalidLocalTime": "The selected time does not exist in the Zagreb time zone.",
+      "maxPointsPositive": "Maximum points must be greater than zero.",
+      "maxPointsMax": "Maximum points cannot exceed 9999.99.",
+      "maxPointsPrecision": "Maximum points can have at most two decimal places.",
+      "methodRequired": "Select at least one submission method.",
+      "groupsRequired": "Select at least one group.",
+      "invalidAssignment": "Invalid assignment."
+    }
   }
 }
