@@ -9,18 +9,19 @@ import {
   Oznaka,
   Odabir,
   Poruka,
+  Tablica,
 } from "@/components/ui";
 
 import type { StatusPredaje } from "@/lib/db/tipovi";
 import type { RedPredajeZadatka } from "@/lib/servisi/predaje-zadatka";
 import { formatDatumVrijeme } from "@/lib/domena/vrijeme";
 
-type Parametros = {
+type Parametri = {
   status?: string | string[];
   grupa?: string | string[];
 };
 
-const estados: StatusPredaje[] = [
+const STATUSI: StatusPredaje[] = [
   "nije_predano",
   "predano",
   "u_pregledu",
@@ -28,8 +29,10 @@ const estados: StatusPredaje[] = [
   "prihvaceno",
 ];
 
-function valorUnico(valor: string | string[] | undefined): string {
-  return typeof valor === "string" ? valor : "";
+function jednaVrijednost(
+  vrijednost: string | string[] | undefined,
+): string {
+  return typeof vrijednost === "string" ? vrijednost : "";
 }
 
 export async function PredajeZadatkaTablica({
@@ -44,7 +47,7 @@ export async function PredajeZadatkaTablica({
   zadatakId: string;
   objavljen: boolean;
   predaje: RedPredajeZadatka[];
-  searchParams: Parametros;
+  searchParams: Parametri;
   jezik: "hr" | "en";
 }) {
   const t = await getTranslations("teacherAssignmentSubmissions");
@@ -103,31 +106,28 @@ export async function PredajeZadatkaTablica({
     }).format(vrijednost);
   }
 
-  // Čitamo i validiramo filtere iz URL-a.
-  const statusParam = valorUnico(searchParams.status);
+  const statusParam = jednaVrijednost(searchParams.status);
 
-  const status: StatusPredaje | "" = estados.includes(
+  const status: StatusPredaje | "" = STATUSI.includes(
     statusParam as StatusPredaje,
   )
     ? (statusParam as StatusPredaje)
     : "";
 
-  // Dostupne grupe iz vidljivih redova.
   const grupe = Array.from(
     new Map(
       predaje
         .flatMap((predaja) => predaja.grupe)
-        .map((grupa) => [grupa.id, grupa]),
+        .map((stavka) => [stavka.id, stavka]),
     ).values(),
   ).sort((a, b) => a.naziv.localeCompare(b.naziv, jezik));
 
-  const grupaParam = valorUnico(searchParams.grupa);
+  const grupaParam = jednaVrijednost(searchParams.grupa);
 
   const grupa = grupe.some((stavka) => stavka.id === grupaParam)
     ? grupaParam
     : "";
 
-  // Primjenjujemo oba filtera.
   const filtrirane = predaje.filter((predaja) => {
     if (status && predaja.status !== status) {
       return false;
@@ -135,7 +135,7 @@ export async function PredajeZadatkaTablica({
 
     if (
       grupa &&
-      !predaja.grupe.some((studentovaGrupa) => studentovaGrupa.id === grupa)
+      !predaja.grupe.some((stavka) => stavka.id === grupa)
     ) {
       return false;
     }
@@ -157,7 +157,7 @@ export async function PredajeZadatkaTablica({
           >
             <option value="">{t("allStatuses")}</option>
 
-            {estados.map((vrijednost) => (
+            {STATUSI.map((vrijednost) => (
               <option key={vrijednost} value={vrijednost}>
                 {nazivStatusa(vrijednost)}
               </option>
@@ -185,8 +185,8 @@ export async function PredajeZadatkaTablica({
           </GumbLink>
         </form>
 
-        <p className="text-sm text-slate-600">
-            {t("resultsCount", {
+        <p className="text-sm text-tekst-slab">
+          {t("resultsCount", {
             filtered: filtrirane.length,
             total: predaje.length,
           })}
@@ -195,110 +195,92 @@ export async function PredajeZadatkaTablica({
         {filtrirane.length === 0 ? (
           <Poruka>{t("empty")}</Poruka>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-600">
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("student")}
-                  </th>
+          <Tablica>
+            <thead>
+              <tr>
+                <th>{t("student")}</th>
+                <th>{t("jmbag")}</th>
+                <th>{t("group")}</th>
+                <th>{t("status")}</th>
+                <th>{t("submittedAt")}</th>
+                <th>{t("deadlineStatus")}</th>
+                <th>{t("points")}</th>
+              </tr>
+            </thead>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("jmbag")}
-                  </th>
+            <tbody>
+              {filtrirane.map((predaja) => (
+                <tr key={predaja.student_id}>
+                  <td>
+                    <Link
+                      className="font-medium hover:underline"
+                      href={`/nastava/${kolegijId}/studenti/${predaja.student_id}`}
+                    >
+                      {predaja.prezime} {predaja.ime}
+                    </Link>
+                  </td>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("group")}
-                  </th>
+                  <td className="tabular-nums">
+                    {predaja.jmbag}
+                  </td>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("status")}
-                  </th>
+                  <td>
+                    {predaja.grupe.length > 0 ? (
+                      predaja.grupe
+                        .map((stavka) => stavka.naziv)
+                        .join(", ")
+                    ) : (
+                      <span className="text-tekst-slab">—</span>
+                    )}
+                  </td>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("submittedAt")}
-                  </th>
+                  <td>
+                    <Oznaka ton={tonStatusa(predaja.status)}>
+                      {nazivStatusa(predaja.status)}
+                    </Oznaka>
+                  </td>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("deadlineStatus")}
-                  </th>
+                  <td className="text-tekst-slab">
+                    {predaja.predano_at
+                      ? formatDatumVrijeme(predaja.predano_at, jezik)
+                      : "—"}
+                  </td>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("points")}
-                  </th>
+                  <td>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="tabular-nums">
+                        {formatDatumVrijeme(predaja.rok, jezik)}
+                      </span>
 
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    {t("submission")}
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filtrirane.map((predaja) => (
-                  <tr
-                    key={predaja.student_id}
-                    className="border-b border-slate-100 align-middle last:border-b-0"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/nastava/${kolegijId}/studenti/${predaja.student_id}`}
-                        className="font-medium text-blue-700 underline underline-offset-4 hover:text-blue-900"
-                      >
-                        {predaja.ime} {predaja.prezime}
-                      </Link>
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {predaja.jmbag}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      {predaja.grupe.length > 0
-                        ? predaja.grupe.map((stavka) => stavka.naziv).join(", ")
-                        : "—"}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Oznaka ton={tonStatusa(predaja.status)}>
-                        {nazivStatusa(predaja.status)}
-                      </Oznaka>
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {predaja.predano_at
-                        ? formatDatumVrijeme(predaja.predano_at, jezik)
-                        : "—"}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3">
                       {predaja.kasni ? (
-                        <Oznaka ton="upozorenje">{t("late")}</Oznaka>
+                        <Oznaka ton="upozorenje">
+                          {t("late")}
+                        </Oznaka>
+                      ) : predaja.rok_prosao ? (
+                        <Oznaka ton="upozorenje">
+                          {t("deadlinePassed")}
+                        </Oznaka>
                       ) : (
-                        "—"
+                        <span className="text-tekst-slab">—</span>
                       )}
-                    </td>
+                    </div>
+                  </td>
 
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {prikaziBodove(predaja.bodovi)}
-                    </td>
+                  <td className="tabular-nums">
+                    {prikaziBodove(predaja.bodovi)}
+                  </td>
+                </tr>
+              ))}
 
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {predaja.predaja_id ? (
-                        <Link
-                          href={`/nastava/${kolegijId}/zadaci/${zadatakId}/predaje/${predaja.predaja_id}`}
-                          className="font-medium text-blue-700 underline underline-offset-4 hover:text-blue-900"
-                        >
-                          {t("openSubmission")}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              {filtrirane.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-tekst-slab">
+                    {t("empty")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Tablica>
         )}
       </div>
     </Kartica>

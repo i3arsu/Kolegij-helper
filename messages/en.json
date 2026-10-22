@@ -592,11 +592,12 @@
     "group": "Groups",
     "status": "Submission status",
     "submittedAt": "Submitted at",
-    "deadlineStatus": "Late",
+    "deadlineStatus": "Deadline / lateness",
     "points": "Points",
     "submission": "Submission",
     "openSubmission": "Open submission",
     "late": "Late",
+    "deadlinePassed": "Deadline has passed",
     "empty": "No students match the selected filters.",
     "statuses": {
       "nije_predano": "Not submitted",
