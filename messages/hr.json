@@ -606,5 +606,38 @@
       "vraceno_na_doradu": "Vraćeno na doradu",
       "prihvaceno": "Prihvaćeno"
     }
+  },
+  "assignmentAttachments": {
+    "invalidOrigin": "Neispravan zahtjev.",
+    "missingContentLength": "Zahtjev mora sadržavati zaglavlje Content-Length.",
+    "invalidBody": "Neispravan sadržaj zahtjeva.",
+    "requestTooLarge": "Zahtjev je prevelik.",
+    "multipartRequired": "Zahtjev mora biti multipart/form-data.",
+    "signInRequired": "Prijavite se za upravljanje prilozima.",
+    "mustChangePassword": "Prije nastavka morate promijeniti lozinku.",
+    "assignmentUnavailable": "Zadatak nije pronađen ili nemate ovlasti.",
+    "fileRequired": "Odaberite datoteku.",
+    "invalidFilename": "Naziv datoteke nije valjan.",
+    "fileTypeNotAllowed": "Ova vrsta datoteke nije dopuštena.",
+    "emptyFile": "Datoteka je prazna.",
+    "fileTooLarge": "Datoteka ne smije biti veća od 20 MiB.",
+    "fileContentMismatch": "Sadržaj datoteke ne odgovara nastavku.",
+    "disallowedTextContent": "Tekstualna datoteka sadrži nedopušteni sadržaj.",
+    "textContainsNul": "Tekstualna datoteka sadrži nedopuštene nulte znakove.",
+    "textMustBeUtf8": "Tekstualna datoteka mora biti kodirana kao UTF-8.",
+    "title": "Prilozi zadatka",
+    "empty": "Za ovaj zadatak još nema priloženih datoteka.",
+    "download": "Preuzmi",
+    "deleteFailed": "Nije moguće ukloniti prilog.",
+    "uploadButton": "Dodaj prilog",
+    "uploading": "Prijenos u tijeku…",
+    "uploadSuccess": "Prilog je uspješno dodan.",
+    "uploadFailed": "Nije moguće prenijeti prilog.",
+    "fileField": "Odaberite datoteku",
+    "fileHint": "Najviše 20 MiB. Dopušteni su tekstualni dokumenti, PDF, ZIP i slike PNG/JPG.",
+    "deleteButton": "Ukloni",
+    "deleting": "Uklanjanje…",
+    "deleteSuccess": "Prilog je uklonjen.",
+    "confirmDelete": "Želite li ukloniti prilog „{name}”?"
   }
 }

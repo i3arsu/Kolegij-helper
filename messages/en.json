@@ -606,5 +606,38 @@
       "vraceno_na_doradu": "Returned for revision",
       "prihvaceno": "Accepted"
     }
+  },
+  "assignmentAttachments": {
+    "invalidOrigin": "Invalid request origin.",
+    "missingContentLength": "The request must include a Content-Length header.",
+    "invalidBody": "Invalid request content.",
+    "requestTooLarge": "The request is too large.",
+    "multipartRequired": "The request must use multipart/form-data.",
+    "signInRequired": "Sign in to manage attachments.",
+    "mustChangePassword": "You must change your password before continuing.",
+    "assignmentUnavailable": "Assignment not found or access denied.",
+    "fileRequired": "Select a file.",
+    "invalidFilename": "The filename is invalid.",
+    "fileTypeNotAllowed": "This file type is not allowed.",
+    "emptyFile": "The file is empty.",
+    "fileTooLarge": "The file must not exceed 20 MiB.",
+    "fileContentMismatch": "The file content does not match its extension.",
+    "disallowedTextContent": "The text file contains disallowed content.",
+    "textContainsNul": "The text file contains disallowed null characters.",
+    "textMustBeUtf8": "The text file must use UTF-8 encoding.",
+    "title": "Assignment attachments",
+    "empty": "There are no attachments for this assignment yet.",
+    "download": "Download",
+    "deleteFailed": "Unable to remove the attachment.",
+    "uploadButton": "Add attachment",
+    "uploading": "Uploading…",
+    "uploadSuccess": "Attachment uploaded successfully.",
+    "uploadFailed": "Unable to upload the attachment.",
+    "fileField": "Choose a file",
+    "fileHint": "Maximum 20 MiB. Allowed formats include text files, PDF, ZIP, and PNG/JPG images.",
+    "deleteButton": "Remove",
+    "deleting": "Removing…",
+    "deleteSuccess": "Attachment removed.",
+    "confirmDelete": "Remove the attachment “{name}”?"
   }
 }

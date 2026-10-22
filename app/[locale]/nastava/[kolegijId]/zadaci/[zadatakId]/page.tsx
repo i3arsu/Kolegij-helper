@@ -10,7 +10,10 @@ import {
   Oznaka,
 } from "@/components/ui";
 
-import { upit, zahtijevajOsoblje } from "@/lib/auth/guard";
+import {
+  upit,
+  zahtijevajOsoblje,
+} from "@/lib/auth/guard";
 import {
   formatDatumVrijeme,
   formatVrijeme,
@@ -18,10 +21,15 @@ import {
 } from "@/lib/domena/vrijeme";
 import { grupeSAsistentima } from "@/lib/servisi/kolegij";
 import { predajeZadatka } from "@/lib/servisi/predaje-zadatka";
+import { priloziZadatka } from "@/lib/servisi/prilozi-zadatka";
 import { zadatakKolegija } from "@/lib/servisi/zadaci";
 
-import { FormaObjave, FormaUrediZadatka } from "./forma";
+import {
+  FormaObjave,
+  FormaUrediZadatka,
+} from "./forma";
 import { PredajeZadatkaTablica } from "./predaje-tablica";
+import { PriloziZadatkaKartica } from "./prilozi-kartica";
 
 export default async function DetaljiZadatka({
   params,
@@ -35,7 +43,7 @@ export default async function DetaljiZadatka({
     notFound();
   }
 
-  // Omogućuje pristup nastavniku i ovlaštenom asistentu.
+  // Pristup imaju nastavnik i ovlašteni asistent.
   const uloga = await zahtijevajOsoblje(kolegijId);
 
   const rezultat = await upit(async (tx) => {
@@ -49,6 +57,12 @@ export default async function DetaljiZadatka({
       return null;
     }
 
+    // Dohvaćamo priloge vidljive trenutnom korisniku.
+    const prilozi = await priloziZadatka(
+      tx,
+      zadatakId,
+    );
+
     // Samo nastavnik treba podatke za obrazac uređivanja.
     const grupe =
       uloga === "nastavnik"
@@ -59,12 +73,17 @@ export default async function DetaljiZadatka({
     const predaje =
       zadatak.objavljen_at === null
         ? []
-        : await predajeZadatka(tx, kolegijId, zadatakId);
+        : await predajeZadatka(
+            tx,
+            kolegijId,
+            zadatakId,
+          );
 
     return {
       zadatak,
       grupe,
       predaje,
+      prilozi,
     };
   });
 
@@ -72,18 +91,36 @@ export default async function DetaljiZadatka({
     notFound();
   }
 
-  const { zadatak, grupe, predaje } = rezultat;
+  const {
+    zadatak,
+    grupe,
+    predaje,
+    prilozi,
+  } = rezultat;
 
-  const t = await getTranslations("teacherAssignmentForm");
-  const tLista = await getTranslations("teacherAssignments");
+  const t = await getTranslations(
+    "teacherAssignmentForm",
+  );
+
+  const tLista = await getTranslations(
+    "teacherAssignments",
+  );
 
   const locale = await getLocale();
   const jezik = locale === "en" ? "en" : "hr";
 
   const metode = zadatak.nacini_predaje.map((metoda) => {
-    if (metoda === "datoteka") return t("methods.datoteka");
-    if (metoda === "link") return t("methods.link");
-    if (metoda === "tekst") return t("methods.tekst");
+    if (metoda === "datoteka") {
+      return t("methods.datoteka");
+    }
+
+    if (metoda === "link") {
+      return t("methods.link");
+    }
+
+    if (metoda === "tekst") {
+      return t("methods.tekst");
+    }
 
     return metoda;
   });
@@ -93,7 +130,9 @@ export default async function DetaljiZadatka({
       <Naslov
         podnaslov={t("details")}
         akcije={
-          <GumbLink href={`/nastava/${kolegijId}/zadaci`}>
+          <GumbLink
+            href={`/nastava/${kolegijId}/zadaci`}
+          >
             {t("backToList")}
           </GumbLink>
         }
@@ -133,7 +172,10 @@ export default async function DetaljiZadatka({
               </dt>
 
               <dd className="mt-1">
-                {formatDatumVrijeme(zadatak.rok, jezik)}
+                {formatDatumVrijeme(
+                  zadatak.rok,
+                  jezik,
+                )}
               </dd>
             </div>
 
@@ -177,12 +219,25 @@ export default async function DetaljiZadatka({
               </dt>
 
               <dd className="mt-1">
-                {zadatak.dopusti_kasnu_predaju ? "✓" : "—"}
+                {zadatak.dopusti_kasnu_predaju
+                  ? "✓"
+                  : "—"}
               </dd>
             </div>
           </dl>
         </div>
       </Kartica>
+
+      {/* Prilozi zadatka: pregled, preuzimanje i upravljanje */}
+      <PriloziZadatkaKartica
+        zadatakId={zadatakId}
+        prilozi={prilozi.map((prilog) => ({
+          id: prilog.id,
+          naziv: prilog.naziv,
+          velicina: Number(prilog.velicina),
+        }))}
+        mozeUpravljati={uloga === "nastavnik"}
+      />
 
       {/* Pregled predaja za nastavnika i asistenta */}
       <PredajeZadatkaTablica
@@ -206,19 +261,26 @@ export default async function DetaljiZadatka({
                 opis: zadatak.opis,
                 datum: isoDatum(zadatak.rok),
                 vrijeme: formatVrijeme(zadatak.rok),
-                maxBodova: String(zadatak.max_bodova),
-                naciniPredaje: zadatak.nacini_predaje,
+                maxBodova: String(
+                  zadatak.max_bodova,
+                ),
+                naciniPredaje:
+                  zadatak.nacini_predaje,
                 dopustiKasnuPredaju:
                   zadatak.dopusti_kasnu_predaju,
                 zaCijeliKolegij:
                   zadatak.za_cijeli_kolegij,
-                grupaIds: zadatak.grupe.map((grupa) => grupa.id),
+                grupaIds: zadatak.grupe.map(
+                  (grupa) => grupa.id,
+                ),
               }}
-              grupe={grupe.map(({ id, naziv, tip }) => ({
-                id,
-                naziv,
-                tip,
-              }))}
+              grupe={grupe.map(
+                ({ id, naziv, tip }) => ({
+                  id,
+                  naziv,
+                  tip,
+                }),
+              )}
             />
           </Kartica>
 
