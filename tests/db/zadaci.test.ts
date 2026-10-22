@@ -230,6 +230,209 @@ describe("vlasnistvo datoteka zadatka", () => {
   });
 });
 
+describe("uklanjanje priloga zadatka", () => {
+  it("nastavnik uklanja nekorišten prilog i njegove metapodatke", async () => {
+    const naziv = "uklanjanje-nekoristenog-priloga.pdf";
+
+    const datotekaId = await dodajTestnuDatoteku(
+      s.N.korisnik,
+      naziv,
+    );
+
+    await o.kao(s.N.korisnik, (tx) =>
+      tx
+        .insertInto("zadatak_prilog")
+        .values({
+          zadatak_id: z.Z.cijeliKolegij,
+          datoteka_id: datotekaId,
+        })
+        .execute(),
+    );
+
+    const rezultat = await ukloniPrilogZadatka(
+      s.N.korisnik,
+      z.Z.cijeliKolegij,
+      datotekaId,
+    );
+
+    expect(rezultat).toEqual({
+      pronadjen: true,
+      putanja: `test/${s.N.korisnik}/${naziv}`,
+    });
+
+    const datoteka = await o.vlasnik
+      .selectFrom("datoteka")
+      .select("id")
+      .where("id", "=", datotekaId)
+      .executeTakeFirst();
+
+    const prilog = await o.vlasnik
+      .selectFrom("zadatak_prilog")
+      .selectAll()
+      .where("datoteka_id", "=", datotekaId)
+      .executeTakeFirst();
+
+    expect(datoteka).toBeUndefined();
+    expect(prilog).toBeUndefined();
+  });
+
+  it("čuva datoteku koja se još koristi u studentskoj predaji", async () => {
+    const naziv = "prilog-koji-koristi-predaja.pdf";
+
+    const datotekaId = await dodajTestnuDatoteku(
+      s.N.korisnik,
+      naziv,
+    );
+
+    const zadatak = await o.vlasnik
+      .insertInto("zadatak")
+      .values(
+        vrijednostiZadatka(
+          s,
+          "Zadatak za provjeru referenci priloga",
+          new Date("2030-01-01T22:59:00.000Z"),
+        ),
+      )
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await o.kao(s.N.korisnik, (tx) =>
+      tx
+        .insertInto("zadatak_prilog")
+        .values({
+          zadatak_id: zadatak.id,
+          datoteka_id: datotekaId,
+        })
+        .execute(),
+    );
+
+    const predaja = await o.vlasnik
+      .insertInto("predaja")
+      .values({
+        zadatak_id: zadatak.id,
+        student_id: s.S1.student,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const verzija = await o.vlasnik
+      .insertInto("predaja_verzija")
+      .values({
+        predaja_id: predaja.id,
+        broj: 1,
+        tekst: null,
+        link: null,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await o.vlasnik
+      .insertInto("predaja_datoteka")
+      .values({
+        verzija_id: verzija.id,
+        datoteka_id: datotekaId,
+      })
+      .execute();
+
+    const rezultat = await ukloniPrilogZadatka(
+      s.N.korisnik,
+      zadatak.id,
+      datotekaId,
+    );
+
+    expect(rezultat).toEqual({
+      pronadjen: true,
+      putanja: null,
+    });
+
+    const datoteka = await o.vlasnik
+      .selectFrom("datoteka")
+      .select("id")
+      .where("id", "=", datotekaId)
+      .executeTakeFirst();
+
+    const povezanaPredaja = await o.vlasnik
+      .selectFrom("predaja_datoteka")
+      .select("datoteka_id")
+      .where("datoteka_id", "=", datotekaId)
+      .executeTakeFirst();
+
+    const prilog = await o.vlasnik
+      .selectFrom("zadatak_prilog")
+      .selectAll()
+      .where("datoteka_id", "=", datotekaId)
+      .executeTakeFirst();
+
+    expect(datoteka?.id).toBe(datotekaId);
+    expect(povezanaPredaja?.datoteka_id).toBe(datotekaId);
+    expect(prilog).toBeUndefined();
+  });
+
+  it("odbija asistenta i ostavlja prilog netaknutim", async () => {
+    const datotekaId = await dodajTestnuDatoteku(
+      s.N.korisnik,
+      "prilog-zasticen-od-asistenta.pdf",
+    );
+
+    await o.kao(s.N.korisnik, (tx) =>
+      tx
+        .insertInto("zadatak_prilog")
+        .values({
+          zadatak_id: z.Z.cijeliKolegij,
+          datoteka_id: datotekaId,
+        })
+        .execute(),
+    );
+
+    const kod = await greskaKod(
+      ukloniPrilogZadatka(
+        s.A.korisnik,
+        z.Z.cijeliKolegij,
+        datotekaId,
+      ),
+    );
+
+    expect(kod).toBe("42501");
+
+    const prilog = await o.vlasnik
+      .selectFrom("zadatak_prilog")
+      .select("datoteka_id")
+      .where("zadatak_id", "=", z.Z.cijeliKolegij)
+      .where("datoteka_id", "=", datotekaId)
+      .executeTakeFirst();
+
+    expect(prilog?.datoteka_id).toBe(datotekaId);
+  });
+
+  it("ne uklanja datoteku koja nije prilog zadanog zadatka", async () => {
+    const naziv = "datoteka-koja-nije-prilog.pdf";
+
+    const datotekaId = await dodajTestnuDatoteku(
+      s.N.korisnik,
+      naziv,
+    );
+
+    const rezultat = await ukloniPrilogZadatka(
+      s.N.korisnik,
+      z.Z.cijeliKolegij,
+      datotekaId,
+    );
+
+    expect(rezultat).toEqual({
+      pronadjen: false,
+      putanja: null,
+    });
+
+    const datoteka = await o.vlasnik
+      .selectFrom("datoteka")
+      .select("id")
+      .where("id", "=", datotekaId)
+      .executeTakeFirst();
+
+    expect(datoteka?.id).toBe(datotekaId);
+  });
+});
+
 describe("brisanje zadataka", () => {
   it("nastavnik može obrisati skicu, ali ne i objavljeni zadatak", async () => {
     // Napravimo zasebnu skicu kako test ne bi ovisio o drugim testovima.
@@ -361,4 +564,34 @@ async function dodajPredajuSDatotekom(
       datoteka_id: datotekaId,
     })
     .execute();
+}
+
+async function ukloniPrilogZadatka(
+  korisnikId: string,
+  zadatakId: string,
+  datotekaId: string,
+) {
+  return o.kao(korisnikId, async (tx) => {
+    const odgovor = await sql<{
+      rezultat: {
+        pronadjen: boolean;
+        putanja: string | null;
+      };
+    }>`
+      select private.ukloni_prilog_zadatka(
+        ${zadatakId}::uuid,
+        ${datotekaId}::uuid
+      ) as rezultat
+    `.execute(tx);
+
+    const rezultat = odgovor.rows[0]?.rezultat;
+
+    if (!rezultat) {
+      throw new Error(
+        "Funkcija ukloni_prilog_zadatka nije vratila rezultat.",
+      );
+    }
+
+    return rezultat;
+  });
 }
