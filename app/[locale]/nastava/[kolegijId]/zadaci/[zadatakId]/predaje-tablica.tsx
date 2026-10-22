@@ -248,20 +248,19 @@ export async function PredajeZadatkaTablica({
 
                   <td>
                     <div className="flex flex-col items-start gap-1">
-                      <span className="tabular-nums">
-                        {formatDatumVrijeme(predaja.rok, jezik)}
-                      </span>
+                      <span className="tabular-nums">{formatDatumVrijeme(predaja.rok, jezik)}</span>
 
                       {predaja.kasni ? (
                         <Oznaka ton="upozorenje">
                           {t("late")}
                         </Oznaka>
-                      ) : predaja.rok_prosao ? (
+                      ) : predaja.status === "nije_predano" &&
+                        predaja.rok_prosao ? (
                         <Oznaka ton="upozorenje">
                           {t("deadlinePassed")}
                         </Oznaka>
                       ) : (
-                        <span className="text-tekst-slab">—</span>
+                      <span className="text-tekst-slab">—</span>
                       )}
                     </div>
                   </td>
@@ -271,14 +270,7 @@ export async function PredajeZadatkaTablica({
                   </td>
                 </tr>
               ))}
-
-              {filtrirane.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-tekst-slab">
-                    {t("empty")}
-                  </td>
-                </tr>
-              )}
+              
             </tbody>
           </Tablica>
         )}

@@ -596,7 +596,7 @@
     "points": "Bodovi",
     "submission": "Predaja",
     "openSubmission": "Otvori predaju",
-    "late": "Zakasnila",
+    "late": "Kasni",
     "deadlinePassed": "Rok je prošao",
     "empty": "Nema studenata za odabrane filtre.",
     "statuses": {
