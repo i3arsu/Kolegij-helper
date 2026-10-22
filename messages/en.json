@@ -576,5 +576,35 @@
       "groupsRequired": "Select at least one group.",
       "invalidAssignment": "Invalid assignment."
     }
+  },
+  "teacherAssignmentSubmissions": {
+    "title": "Student submissions",
+    "notPublished": "Publish the assignment to view submissions.",
+    "statusFilter": "Status",
+    "groupFilter": "Group",
+    "allStatuses": "All statuses",
+    "allGroups": "All groups",
+    "filter": "Filter",
+    "reset": "Reset",
+    "resultsCount": "{filtered} of {total} students",
+    "student": "Student",
+    "jmbag": "JMBAG",
+    "group": "Groups",
+    "status": "Submission status",
+    "submittedAt": "Submitted at",
+    "deadlineStatus": "Deadline / lateness",
+    "points": "Points",
+    "submission": "Submission",
+    "openSubmission": "Open submission",
+    "late": "Late",
+    "deadlinePassed": "Deadline has passed",
+    "empty": "No students match the selected filters.",
+    "statuses": {
+      "nije_predano": "Not submitted",
+      "predano": "Submitted",
+      "u_pregledu": "Under review",
+      "vraceno_na_doradu": "Returned for revision",
+      "prihvaceno": "Accepted"
+    }
   }
 }

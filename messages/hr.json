@@ -576,5 +576,35 @@
       "groupsRequired": "Odaberite barem jednu grupu.",
       "invalidAssignment": "Neispravan zadatak."
     }
+  },
+  "teacherAssignmentSubmissions": {
+    "title": "Predaje studenata",
+    "notPublished": "Objavite zadatak kako biste pregledali predaje.",
+    "statusFilter": "Status",
+    "groupFilter": "Grupa",
+    "allStatuses": "Svi statusi",
+    "allGroups": "Sve grupe",
+    "filter": "Filtriraj",
+    "reset": "Poništi",
+    "resultsCount": "{filtered} od {total} studenata",
+    "student": "Student",
+    "jmbag": "JMBAG",
+    "group": "Grupe",
+    "status": "Status predaje",
+    "submittedAt": "Vrijeme predaje",
+    "deadlineStatus": "Rok / kašnjenje",
+    "points": "Bodovi",
+    "submission": "Predaja",
+    "openSubmission": "Otvori predaju",
+    "late": "Kasni",
+    "deadlinePassed": "Rok je prošao",
+    "empty": "Nema studenata za odabrane filtre.",
+    "statuses": {
+      "nije_predano": "Nije predano",
+      "predano": "Predano",
+      "u_pregledu": "U pregledu",
+      "vraceno_na_doradu": "Vraćeno na doradu",
+      "prihvaceno": "Prihvaćeno"
+    }
   }
 }
