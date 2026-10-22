@@ -270,7 +270,6 @@ export async function PredajeZadatkaTablica({
                   </td>
                 </tr>
               ))}
-              
             </tbody>
           </Tablica>
         )}
