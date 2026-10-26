@@ -1,7 +1,6 @@
 ﻿
 import type { NextRequest } from "next/server";
 
-import { sql } from "kysely";
 import {
   beforeEach,
   describe,
@@ -20,29 +19,12 @@ import { POST } from "@/app/api/zadaci/[zadatakId]/prilozi/route";
 
 // Creamos los mocks antes de cargar los módulos que los utilizan.
 const {
-  randomUUIDMock,
   spremiMock,
   obrisiMock,
-  sqlExecuteMock,
 } = vi.hoisted(() => ({
-  randomUUIDMock: vi.fn(
-    () => "66666666-6666-4666-8666-666666666666",
-  ),
   spremiMock: vi.fn(),
   obrisiMock: vi.fn(),
-  sqlExecuteMock: vi.fn(),
 }));
-
-// Simulamos el UUID para que las pruebas sean deterministas.
-vi.mock("node:crypto", async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import("node:crypto")>();
-
-  return {
-    ...original,
-    randomUUID: randomUUIDMock,
-  };
-});
 
 // Simulamos las funciones de autenticación y consulta.
 vi.mock("@/lib/auth/guard", () => ({
@@ -55,13 +37,6 @@ vi.mock("@/lib/auth/guard", () => ({
 vi.mock("@/lib/datoteke/spremiste", () => ({
   obrisi: obrisiMock,
   spremi: spremiMock,
-}));
-
-// Simulamos la ejecución de las consultas SQL.
-vi.mock("kysely", () => ({
-  sql: vi.fn(() => ({
-    execute: sqlExecuteMock,
-  })),
 }));
 
 const ZADATAK_ID =
@@ -151,17 +126,67 @@ async function pozoviPost(
   });
 }
 
+/**
+ * Simula las dos inserciones que realiza Kysely:
+ * 1. Inserción de los metadatos de la tabla datoteka.
+ * 2. Asociación del archivo con el zadatak.
+ *
+ * Se puede proporcionar un error para simular un fallo
+ * durante la creación de la asociación.
+ */
+function napraviTransakcijuMock(
+  greskaPovezivanja?: Error,
+) {
+  const izvrsiUmetanjeDatoteke = vi
+    .fn()
+    .mockResolvedValue({
+      id: DATOTEKA_ID,
+    });
+
+  const izvrsiPovezivanje = greskaPovezivanja
+    ? vi.fn().mockRejectedValue(greskaPovezivanja)
+    : vi.fn().mockResolvedValue([]);
+
+  const datotekaValues = vi.fn(() => ({
+    returning: vi.fn(() => ({
+      executeTakeFirstOrThrow:
+        izvrsiUmetanjeDatoteke,
+    })),
+  }));
+
+  const prilogValues = vi.fn(() => ({
+    execute: izvrsiPovezivanje,
+  }));
+
+  const insertInto = vi.fn((tablica: string) => {
+    if (tablica === "datoteka") {
+      return {
+        values: datotekaValues,
+      };
+    }
+
+    if (tablica === "zadatak_prilog") {
+      return {
+        values: prilogValues,
+      };
+    }
+
+    throw new Error(
+      `Tablica nije podržana u testu: ${tablica}`,
+    );
+  });
+
+  return {
+    tx: { insertInto },
+    insertInto,
+    izvrsiUmetanjeDatoteke,
+    izvrsiPovezivanje,
+  };
+}
+
 describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-
-    randomUUIDMock.mockReturnValue(DATOTEKA_ID);
-
-    vi.mocked(sql).mockImplementation(
-      (() => ({
-        execute: sqlExecuteMock,
-      })) as never,
-    );
 
     vi.mocked(dohvatiProfil).mockResolvedValue(null);
     vi.mocked(ulogaNaKolegiju).mockResolvedValue(null);
@@ -415,6 +440,7 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
     forma.set("datoteka", datoteka);
 
     const zahtjev = napraviZahtjev({ forma });
+    const transakcija = napraviTransakcijuMock();
 
     vi.mocked(dohvatiProfil).mockResolvedValue(
       profilNastavnika(),
@@ -436,7 +462,10 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
       )
       .mockImplementationOnce(
         async (fn) =>
-          fn({} as never, profilNastavnika()),
+          fn(
+            transakcija.tx as never,
+            profilNastavnika(),
+          ),
       );
 
     const putanja = "test/prilozi/zadatak.txt";
@@ -446,16 +475,6 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
       velicina: datoteka.size,
       sha256: "a".repeat(64),
     });
-
-    // 1. Inserción de los metadatos.
-    // 2. Asociación de la datoteka con la tarea.
-    sqlExecuteMock
-      .mockResolvedValueOnce({
-        rows: [],
-      })
-      .mockResolvedValueOnce({
-        rows: [],
-      });
 
     const response = await pozoviPost(zahtjev);
 
@@ -471,8 +490,25 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
 
     expect(typeof tijelo.mime).toBe("string");
     expect(spremiMock).toHaveBeenCalledTimes(1);
-    expect(randomUUIDMock).toHaveBeenCalledTimes(1);
-    expect(sqlExecuteMock).toHaveBeenCalledTimes(2);
+
+    expect(transakcija.insertInto).toHaveBeenNthCalledWith(
+      1,
+      "datoteka",
+    );
+
+    expect(transakcija.insertInto).toHaveBeenNthCalledWith(
+      2,
+      "zadatak_prilog",
+    );
+
+    expect(
+      transakcija.izvrsiUmetanjeDatoteke,
+    ).toHaveBeenCalledTimes(1);
+
+    expect(
+      transakcija.izvrsiPovezivanje,
+    ).toHaveBeenCalledTimes(1);
+
     expect(obrisiMock).not.toHaveBeenCalled();
   });
 
@@ -490,6 +526,14 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
     );
 
     const zahtjev = napraviZahtjev({ forma });
+
+    const greskaPovezivanja = new Error(
+      "Simulirana greška baze podataka.",
+    );
+
+    const transakcija = napraviTransakcijuMock(
+      greskaPovezivanja,
+    );
 
     vi.mocked(dohvatiProfil).mockResolvedValue(
       profilNastavnika(),
@@ -509,7 +553,10 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
       )
       .mockImplementationOnce(
         async (fn) =>
-          fn({} as never, profilNastavnika()),
+          fn(
+            transakcija.tx as never,
+            profilNastavnika(),
+          ),
       );
 
     const putanja = "test/prilozi/zadatak.txt";
@@ -520,21 +567,19 @@ describe("POST /api/zadaci/[zadatakId]/prilozi", () => {
       sha256: "b".repeat(64),
     });
 
-    // La inserción de metadatos funciona.
-    // La asociación con la tarea falla.
-    sqlExecuteMock
-      .mockResolvedValueOnce({
-        rows: [],
-      })
-      .mockRejectedValueOnce(
-        new Error("Simulirana greška baze podataka."),
-      );
-
     const response = await pozoviPost(zahtjev);
 
     expect(response.status).toBe(500);
     expect(spremiMock).toHaveBeenCalledTimes(1);
-    expect(sqlExecuteMock).toHaveBeenCalledTimes(2);
+
+    expect(
+      transakcija.izvrsiUmetanjeDatoteke,
+    ).toHaveBeenCalledTimes(1);
+
+    expect(
+      transakcija.izvrsiPovezivanje,
+    ).toHaveBeenCalledTimes(1);
+
     expect(obrisiMock).toHaveBeenCalledWith(putanja);
   });
 });

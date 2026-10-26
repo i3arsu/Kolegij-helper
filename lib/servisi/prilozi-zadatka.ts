@@ -1,4 +1,4 @@
-﻿import type { Tx } from "@/lib/db/klijent";
+import type { Tx } from "@/lib/db/klijent";
 
 export async function priloziZadatka(
   tx: Tx,

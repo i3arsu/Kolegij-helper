@@ -236,41 +236,7 @@ export async function DELETE(
       return vrijednost;
     });
   } catch (greska) {
-    // Privremeni detaljni zapis za pronalaženje uzroka
-    // greške u PostgreSQL-u ili SQL funkciji.
-    const detalji =
-      greska instanceof Error
-        ? (greska as Error & {
-            code?: string;
-            detail?: string;
-            hint?: string;
-            schema?: string;
-            table?: string;
-            constraint?: string;
-            routine?: string;
-          })
-        : undefined;
-
-    console.error(
-      "[DELETE prilozi] Greška pri uklanjanju priloga:",
-      {
-        message:
-          greska instanceof Error
-            ? greska.message
-            : String(greska),
-        code: detalji?.code,
-        detail: detalji?.detail,
-        hint: detalji?.hint,
-        schema: detalji?.schema,
-        table: detalji?.table,
-        constraint: detalji?.constraint,
-        routine: detalji?.routine,
-        stack:
-          greska instanceof Error
-            ? greska.stack
-            : undefined,
-      },
-    );
+    console.error("[DELETE prilozi]", greska);
 
     return Response.json(
       { greska: t("deleteFailed") },
@@ -292,21 +258,12 @@ export async function DELETE(
     try {
       await obrisi(rezultat.putanja);
     } catch (greska) {
-      // Baza je već ažurirana. Zabilježimo grešku fizičkog
-      // brisanja, ali ne vraćamo lažan neuspjeh klijentu.
+      // Baza je već ažurirana. Ne prijavljujemo klijentu
+      // neuspjeh transakcije koja je već uspješno završena.
       console.error(
         "[DELETE prilozi] Nije moguće fizički obrisati datoteku:",
-        {
-          putanja: rezultat.putanja,
-          message:
-            greska instanceof Error
-              ? greska.message
-              : String(greska),
-          stack:
-            greska instanceof Error
-              ? greska.stack
-              : undefined,
-        },
+        rezultat.putanja,
+        greska,
       );
     }
   }

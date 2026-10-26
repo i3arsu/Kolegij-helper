@@ -1,6 +1,4 @@
 
-import { randomUUID } from "node:crypto";
-import { sql } from "kysely";
 import { createTranslator } from "next-intl";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
@@ -60,7 +58,7 @@ function jsonGreska(
 
 function siguranNazivDatoteke(naziv: string): string {
   const siguran = naziv
-    .replace(/[\\/\u0000-\u001f\u007f]/g, "_")
+    .replace(/[\/\\\u0000-\u001f\u007f]/g, "_")
     .trim()
     .slice(0, 255);
 
@@ -331,6 +329,7 @@ export async function POST(
   }
 
   let naziv: string;
+
   let provjerena: Awaited<
     ReturnType<typeof provjeriDatoteku>
   >;
@@ -362,51 +361,31 @@ export async function POST(
 
     novaPutanja = spremljena.putanja;
 
-    // Generiramo ID unaprijed. Tako ne ovisimo o RETURNING,
-    // koji bi također mogao aktivirati provjeru SELECT politike.
-    const datotekaId = randomUUID();
-
     // Metapodaci i veza sa zadatkom upisuju se unutar
     // jedne transakcije prijavljenog korisnika.
     const rezultat = await upit(async (tx) => {
-      // Privremena dijagnostika RLS-a.
-      // Možemo je ukloniti nakon što riješimo problem.
-
-      // Prvi upis: metapodaci bez RETURNING i bez SELECT-a.
-      await sql`
-        insert into datoteka (
-          id,
-          putanja,
+      const datotekaRed = await tx
+        .insertInto("datoteka")
+        .values({
+          putanja: spremljena.putanja,
           naziv,
-          velicina,
-          mime,
-          sha256,
-          vlasnik
-        )
-        values (
-          ${datotekaId}::uuid,
-          ${spremljena.putanja},
-          ${naziv},
-          ${spremljena.velicina},
-          ${provjerena.mimeTip},
-          ${spremljena.sha256},
-          ${profil.korisnikId}::uuid
-        )
-      `.execute(tx);
+          velicina: spremljena.velicina,
+          mime: provjerena.mimeTip,
+          sha256: spremljena.sha256,
+          vlasnik: profil.korisnikId,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
 
-      // Drugi upis: povezujemo datoteku sa zadatkom.
-      await sql`
-        insert into zadatak_prilog (
-          zadatak_id,
-          datoteka_id
-        )
-        values (
-          ${zadatakId}::uuid,
-          ${datotekaId}::uuid
-        )
-      `.execute(tx);
+      await tx
+        .insertInto("zadatak_prilog")
+        .values({
+          zadatak_id: zadatakId,
+          datoteka_id: datotekaRed.id,
+        })
+        .execute();
 
-      return { id: datotekaId };
+      return { id: datotekaRed.id };
     });
 
     transakcijaUspjela = true;
@@ -418,34 +397,7 @@ export async function POST(
       velicina: spremljena.velicina,
     });
   } catch (greska) {
-    // Detalji privremeni za otkriti točno mjesto pogreške.
-    const detalji =
-      greska instanceof Error
-        ? (greska as Error & {
-            code?: string;
-            detail?: string;
-            table?: string;
-            schema?: string;
-            constraint?: string;
-            hint?: string;
-          })
-        : undefined;
-
-    console.error(
-      "[POST prilozi] Greška pri spremanju priloga:",
-      {
-        message:
-          greska instanceof Error
-            ? greska.message
-            : String(greska),
-        code: detalji?.code,
-        detail: detalji?.detail,
-        table: detalji?.table,
-        schema: detalji?.schema,
-        constraint: detalji?.constraint,
-        hint: detalji?.hint,
-      },
-    );
+    console.error("[POST prilozi]", greska);
 
     // Ako transakcija nije uspjela, uklanjamo fizičku datoteku.
     if (!transakcijaUspjela && novaPutanja) {
