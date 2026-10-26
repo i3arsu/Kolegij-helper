@@ -454,115 +454,105 @@ describe("uklanjanje priloga zadatka", () => {
   });
 
 
-it("ne otkriva postojanje veze korisniku bez ovlasti", async () => {
-  const datotekaId = await dodajTestnuDatoteku(
-    s.N.korisnik,
-    "prilog-nevidljiv-neovlastenom.pdf",
-  );
+  it("ne otkriva postojanje veze korisniku bez ovlasti", async () => {
+    const datotekaId = await dodajTestnuDatoteku(
+      s.N.korisnik,
+      "prilog-nevidljiv-neovlastenom.pdf",
+    );
 
-  // Datoteka postoji, ali nije povezana sa zadatkom.
-  const kod = await greskaKod(
-    ukloniPrilogZadatka(
-      s.A.korisnik,
-      z.Z.cijeliKolegij,
-      datotekaId,
-    ),
-  );
+    // Datoteka postoji, ali nije povezana sa zadatkom.
+    const kod = await greskaKod(
+      ukloniPrilogZadatka(
+        s.A.korisnik,
+        z.Z.cijeliKolegij,
+        datotekaId,
+      ),
+    );
 
-  expect(kod).toBe("42501");
+    expect(kod).toBe("42501");
 
-  const datoteka = await o.vlasnik
-    .selectFrom("datoteka")
-    .select("id")
-    .where("id", "=", datotekaId)
-    .executeTakeFirst();
+    const datoteka = await o.vlasnik
+      .selectFrom("datoteka")
+      .select("id")
+      .where("id", "=", datotekaId)
+      .executeTakeFirst();
 
-  expect(datoteka?.id).toBe(datotekaId);
-});
-
-
-it("nastavnik može ukloniti prilog drugog nastavnika bez brisanja njegove datoteke", async () => {
-  const naziv = "prilog-drugog-nastavnika.pdf";
-
-  // El archivo pertenece al profesor original.
-  const datotekaId = await dodajTestnuDatoteku(
-    s.N.korisnik,
-    naziv,
-  );
-
-  // El profesor original lo vincula a una tarea de K1.
-  await o.kao(s.N.korisnik, (tx) =>
-    tx
-      .insertInto("zadatak_prilog")
-      .values({
-        zadatak_id: z.Z.cijeliKolegij,
-        datoteka_id: datotekaId,
-      })
-      .execute(),
-  );
-
-  // Creamos un segundo profesor.
-  const drugiKorisnik = await o.vlasnik
-    .insertInto("korisnik")
-    .values({
-      email: "drugi-nastavnik-prilog@unipu.test",
-      lozinka_hash: "x",
-      mora_promijeniti_lozinku: false,
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-
-  const drugiNastavnik = await o.vlasnik
-    .insertInto("osoblje")
-    .values({
-      korisnik_id: drugiKorisnik.id,
-      ime: "Drugi",
-      prezime: "Nastavnik",
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-
-  // Ambos profesores están autorizados para K1.
-  await o.vlasnik
-    .insertInto("osoblje_kolegija")
-    .values({
-      kolegij_id: s.K1,
-      osoblje_id: drugiNastavnik.id,
-      uloga: "nastavnik",
-    })
-    .execute();
-
-  // El segundo profesor elimina la relación, no el archivo.
-  const rezultat = await ukloniPrilogZadatka(
-    drugiKorisnik.id,
-    z.Z.cijeliKolegij,
-    datotekaId,
-  );
-
-  expect(rezultat).toEqual({
-    pronadjen: true,
-    putanja: null,
+    expect(datoteka?.id).toBe(datotekaId);
   });
 
-  // Los metadatos del archivo original siguen existiendo.
-  const datoteka = await o.vlasnik
-    .selectFrom("datoteka")
-    .select("id")
-    .where("id", "=", datotekaId)
-    .executeTakeFirst();
 
-  expect(datoteka?.id).toBe(datotekaId);
+  it("nastavnik može ukloniti prilog drugog nastavnika bez brisanja njegove datoteke", async () => {
+    const naziv = "prilog-drugog-nastavnika.pdf";
 
-  // La relación con la tarea ya no existe.
-  const prilog = await o.vlasnik
-    .selectFrom("zadatak_prilog")
-    .selectAll()
-    .where("zadatak_id", "=", z.Z.cijeliKolegij)
-    .where("datoteka_id", "=", datotekaId)
-    .executeTakeFirst();
+    const datotekaId = await dodajTestnuDatoteku(s.N.korisnik, naziv);
 
-  expect(prilog).toBeUndefined();
-});
+    await o.kao(s.N.korisnik, (tx) =>
+      tx
+        .insertInto("zadatak_prilog")
+        .values({
+          zadatak_id: z.Z.cijeliKolegij,
+          datoteka_id: datotekaId,
+        })
+        .execute(),
+    );
+
+    const drugiKorisnik = await o.vlasnik
+      .insertInto("korisnik")
+      .values({
+        email: "drugi-nastavnik-prilog@unipu.test",
+        lozinka_hash: "x",
+        mora_promijeniti_lozinku: false,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const drugiNastavnik = await o.vlasnik
+      .insertInto("osoblje")
+      .values({
+        korisnik_id: drugiKorisnik.id,
+        ime: "Drugi",
+        prezime: "Nastavnik",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await o.vlasnik
+      .insertInto("osoblje_kolegija")
+      .values({
+        kolegij_id: s.K1,
+        osoblje_id: drugiNastavnik.id,
+        uloga: "nastavnik",
+      })
+      .execute();
+
+    const rezultat = await ukloniPrilogZadatka(
+      drugiKorisnik.id,
+      z.Z.cijeliKolegij,
+      datotekaId,
+    );
+
+    expect(rezultat).toEqual({
+      pronadjen: true,
+      putanja: null,
+    });
+
+    const datoteka = await o.vlasnik
+      .selectFrom("datoteka")
+      .select("id")
+      .where("id", "=", datotekaId)
+      .executeTakeFirst();
+
+    expect(datoteka?.id).toBe(datotekaId);
+
+    const prilog = await o.vlasnik
+      .selectFrom("zadatak_prilog")
+      .selectAll()
+      .where("zadatak_id", "=", z.Z.cijeliKolegij)
+      .where("datoteka_id", "=", datotekaId)
+      .executeTakeFirst();
+
+    expect(prilog).toBeUndefined();
+  });
 
 });
 
