@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 
+import { produzenjaRokaZadatka } from "@/lib/servisi/produzenja-roka";
+
 import {
   GumbLink,
   Kartica,
@@ -78,12 +80,15 @@ export default async function DetaljiZadatka({
             kolegijId,
             zadatakId,
           );
+    // Samo nastavnik upravlja pojedinačnim produljenjima.
+    const produzenja = zadatak.objavljen_at === null || uloga !== "nastavnik" ? [] : await produzenjaRokaZadatka(tx,zadatakId);
 
     return {
       zadatak,
       grupe,
       predaje,
       prilozi,
+      produzenja,
     };
   });
 
@@ -96,6 +101,7 @@ export default async function DetaljiZadatka({
     grupe,
     predaje,
     prilozi,
+    produzenja,
   } = rezultat;
 
   const t = await getTranslations(
@@ -245,6 +251,8 @@ export default async function DetaljiZadatka({
         zadatakId={zadatakId}
         objavljen={zadatak.objavljen_at !== null}
         predaje={predaje}
+        produzenja={produzenja}
+        mozeUpravljatiProduzenjima={uloga === "nastavnik"}
         searchParams={sp}
         jezik={jezik}
       />
