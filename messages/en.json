@@ -653,7 +653,7 @@
     "removing": "Removing…",
     "saved": "The deadline extension has been saved.",
     "removed": "The deadline extension has been removed.",
-    "extended": "Produljeno",
+    "extended": "Extended",
     "validation": {
       "invalidAssignment": "Assignment not found or access denied.",
       "invalidDate": "Select a valid date.",
