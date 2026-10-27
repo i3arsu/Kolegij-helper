@@ -653,13 +653,15 @@
     "removing": "Uklanjanje…",
     "saved": "Produljenje roka je spremljeno.",
     "removed": "Produljenje roka je uklonjeno.",
+    "extended": "Extended",
     "validation": {
       "invalidAssignment": "Zadatak nije pronađen ili nemate ovlasti.",
       "invalidDate": "Odaberite valjan datum.",
       "invalidTime": "Odaberite valjano vrijeme.",
       "invalidLocalTime": "Odabrano vrijeme ne postoji u vremenskoj zoni Zagreba.",
       "reasonMax": "Razlog ne smije biti duži od 500 znakova.",
-      "studentUnavailable": "Studentu nije dodijeljen ovaj zadatak ili nemate ovlasti."
+      "studentUnavailable": "Studentu nije dodijeljen ovaj zadatak ili nemate ovlasti.",
+      "mustBeAfterDeadline": "Novi rok mora biti nakon izvornog roka zadatka."
     }
   }
 }

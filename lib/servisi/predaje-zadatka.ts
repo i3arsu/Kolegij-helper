@@ -26,12 +26,14 @@ export type RedPredajeZadatka = {
   kasni: boolean;
   rok: Date;
   rok_prosao: boolean;
+  ima_produljenje: boolean;
   grupe: GrupaPredaje[];
 };
 
 /**
  * Vraća studente kojima je objavljeni zadatak dodijeljen,
- * njihov status predaje i trenutne grupe.
+ * njihov status predaje, efektivni rok, informaciju o produljenju
+ * i trenutne grupe.
  *
  * Pristup redovima ograničavaju RLS pravila i security_invoker
  * na pogledu v_predaja. Ne zaobilaziti ih dodatnim privilegijama.
@@ -55,6 +57,7 @@ export async function predajeZadatka(
       coalesce(vp.kasni, false) as kasni,
       vp.rok,
       coalesce(vp.rok_prosao, false) as rok_prosao,
+      (vp.rok <> z.rok) as ima_produljenje,
       coalesce(
         (
           select jsonb_agg(
@@ -77,6 +80,8 @@ export async function predajeZadatka(
         '[]'::jsonb
       ) as grupe
     from public.v_predaja vp
+    join public.zadatak z
+      on z.id = vp.zadatak_id
     join public.student s
       on s.id = vp.student_id
     where vp.kolegij_id = ${kolegijId}

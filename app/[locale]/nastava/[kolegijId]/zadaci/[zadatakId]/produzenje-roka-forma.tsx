@@ -70,9 +70,6 @@ export function ProduzenjeRokaForma({
 
   return (
     <div className="min-w-64 space-y-3">
-      <p className="text-sm font-medium">
-        {t(postoji ? "edit" : "grant")}
-      </p>
 
       <form action={akcija} className="space-y-3">
         <input

@@ -1,7 +1,7 @@
-
 import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
+
 import {
   Gumb,
   GumbLink,
@@ -107,7 +107,9 @@ export async function PredajeZadatkaTablica({
     }
   }
 
-  function prikaziBodove(bodovi: string | null): string {
+  function prikaziBodove(
+    bodovi: string | null,
+  ): string {
     if (bodovi === null) {
       return "—";
     }
@@ -185,7 +187,10 @@ export async function PredajeZadatkaTablica({
             <option value="">{t("allStatuses")}</option>
 
             {STATUSI.map((vrijednost) => (
-              <option key={vrijednost} value={vrijednost}>
+              <option
+                key={vrijednost}
+                value={vrijednost}
+              >
                 {nazivStatusa(vrijednost)}
               </option>
             ))}
@@ -199,13 +204,18 @@ export async function PredajeZadatkaTablica({
             <option value="">{t("allGroups")}</option>
 
             {grupe.map((stavka) => (
-              <option key={stavka.id} value={stavka.id}>
+              <option
+                key={stavka.id}
+                value={stavka.id}
+              >
                 {stavka.naziv}
               </option>
             ))}
           </Odabir>
 
-          <Gumb type="submit">{t("filter")}</Gumb>
+          <Gumb type="submit">
+            {t("filter")}
+          </Gumb>
 
           <GumbLink
             href={`/nastava/${kolegijId}/zadaci/${zadatakId}`}
@@ -294,12 +304,20 @@ export async function PredajeZadatkaTablica({
 
                     <td>
                       <div className="flex flex-col items-start gap-1">
-                        <span className="tabular-nums">
-                          {formatDatumVrijeme(
-                            predaja.rok,
-                            jezik,
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="tabular-nums">
+                            {formatDatumVrijeme(
+                              predaja.rok,
+                              jezik,
+                            )}
+                          </span>
+
+                          {predaja.ima_produljenje && (
+                            <Oznaka ton="neutralno">
+                              {tProduzenje("extended")}
+                            </Oznaka>
                           )}
-                        </span>
+                        </div>
 
                         {predaja.kasni ? (
                           <Oznaka ton="upozorenje">

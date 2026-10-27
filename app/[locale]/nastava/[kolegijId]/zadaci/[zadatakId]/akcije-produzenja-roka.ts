@@ -74,6 +74,7 @@ export async function spremiProduzenjeRokaAkcija(
   await zahtijevajNastavnika(kolegijId);
 
   const locale = jezikObrasca(forma);
+
   const t = await getTranslations({
     locale,
     namespace: "teacherDeadlineExtensions",
@@ -134,8 +135,7 @@ export async function spremiProduzenjeRokaAkcija(
     p.data.vrijeme,
   );
 
-  // Provjeravamo da je odabrano vrijeme valjano
-  // u vremenskoj zoni Europe/Zagreb.
+  // Provjeravamo valjanost vremena u vremenskoj zoni Zagreba.
   if (
     isoDatum(noviRok) !== p.data.datum ||
     formatVrijeme(noviRok) !== p.data.vrijeme
@@ -146,40 +146,65 @@ export async function spremiProduzenjeRokaAkcija(
   }
 
   try {
-    const spremljeno = await upit(
-      async (tx, profil) => {
-        // v_predaja sadrži objavljene zadatke koji su
-        // dodijeljeni studentu. Tako odbijamo i nevažeće
-        // kombinacije zadatka, kolegija i studenta.
-        const dodjela = await tx
-          .selectFrom("v_predaja")
-          .select("student_id")
-          .where("kolegij_id", "=", kolegijId)
-          .where("zadatak_id", "=", id.data.zadatakId)
-          .where("student_id", "=", id.data.studentId)
-          .executeTakeFirst();
+    const rezultat = await upit(async (tx, profil) => {
+      // Provjeravamo da je zadatak dodijeljen studentu
+      // i dohvaćamo izvorni rok bez postojeće izmjene.
+      const dodjela = await tx
+        .selectFrom("v_predaja as vp")
+        .innerJoin(
+          "zadatak as z",
+          "z.id",
+          "vp.zadatak_id",
+        )
+        .select("z.rok as izvorni_rok")
+        .where("vp.kolegij_id", "=", kolegijId)
+        .where(
+          "vp.zadatak_id",
+          "=",
+          id.data.zadatakId,
+        )
+        .where(
+          "vp.student_id",
+          "=",
+          id.data.studentId,
+        )
+        .executeTakeFirst();
 
-        if (!dodjela) {
-          return false;
-        }
+      if (!dodjela) {
+        return "studentUnavailable" as const;
+      }
 
-        await spremiProduzenjeRoka(tx, {
-          zadatak_id: id.data.zadatakId,
-          student_id: id.data.studentId,
-          novi_rok: noviRok,
-          razlog: p.data.razlog,
-          // Vlasnika ne prihvaćamo iz obrasca.
-          // Koristimo ID autentificiranog korisnika.
-          odobrio: profil.korisnikId,
-        });
+      // Novo produljenje mora biti strogo nakon izvornog roka.
+      // Tako sprječavamo slučajno skraćivanje roka studentu.
+      if (
+        noviRok.getTime() <=
+        dodjela.izvorni_rok.getTime()
+      ) {
+        return "mustBeAfterDeadline" as const;
+      }
 
-        return true;
-      },
-    );
+      await spremiProduzenjeRoka(tx, {
+        zadatak_id: id.data.zadatakId,
+        student_id: id.data.studentId,
+        novi_rok: noviRok,
+        razlog: p.data.razlog,
 
-    if (!spremljeno) {
+        // ID dolazi iz autentificirane sesije, ne iz obrasca.
+        odobrio: profil.korisnikId,
+      });
+
+      return "saved" as const;
+    });
+
+    if (rezultat === "studentUnavailable") {
       return {
         greska: t("validation.studentUnavailable"),
+      };
+    }
+
+    if (rezultat === "mustBeAfterDeadline") {
+      return {
+        greska: t("validation.mustBeAfterDeadline"),
       };
     }
   } catch (e) {
@@ -195,7 +220,11 @@ export async function spremiProduzenjeRokaAkcija(
   }
 
   revalidatePath(
-    putanjaZadatka(locale, kolegijId, id.data.zadatakId),
+    putanjaZadatka(
+      locale,
+      kolegijId,
+      id.data.zadatakId,
+    ),
   );
 
   return {
@@ -213,6 +242,7 @@ export async function ukloniProduzenjeRokaAkcija(
   await zahtijevajNastavnika(kolegijId);
 
   const locale = jezikObrasca(forma);
+
   const t = await getTranslations({
     locale,
     namespace: "teacherDeadlineExtensions",
@@ -274,7 +304,11 @@ export async function ukloniProduzenjeRokaAkcija(
   }
 
   revalidatePath(
-    putanjaZadatka(locale, kolegijId, id.data.zadatakId),
+    putanjaZadatka(
+      locale,
+      kolegijId,
+      id.data.zadatakId,
+    ),
   );
 
   return {
