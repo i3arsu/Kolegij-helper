@@ -1,4 +1,3 @@
-
 import {
   beforeEach,
   describe,
@@ -171,7 +170,6 @@ describe("spremiProduzenjeRokaAkcija", () => {
       });
 
       expect(spremiProduzenjeRoka).not.toHaveBeenCalled();
-
       expect(revalidatePath).not.toHaveBeenCalled();
 
       expect(transakcija.selectFrom).toHaveBeenCalledWith(
@@ -183,4 +181,56 @@ describe("spremiProduzenjeRokaAkcija", () => {
       ).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("sprema produljenje s prijavljenim nastavnikom kao odobravateljem", async () => {
+    const datum = "2030-01-08";
+    const vrijeme = "13:30";
+
+    const izvorniRok = lokalnoUTrenutak(
+      "2030-01-07",
+      "13:30",
+    );
+
+    const noviRok = lokalnoUTrenutak(
+      datum,
+      vrijeme,
+    );
+
+    const transakcija = napraviTransakciju(
+      izvorniRok,
+    );
+
+    vi.mocked(upit).mockImplementation(
+      async (fn) =>
+        fn(
+          transakcija as never,
+          {
+            korisnikId: PROFESOR_ID,
+          } as never,
+        ),
+    );
+
+    await spremiProduzenjeRokaAkcija(
+      KOLEGIJ_ID,
+      ZADATAK_ID,
+      STUDENT_ID,
+      {},
+      napraviFormu(datum, vrijeme),
+    );
+
+    expect(spremiProduzenjeRoka).toHaveBeenCalledTimes(1);
+
+    expect(spremiProduzenjeRoka).toHaveBeenCalledWith(
+      transakcija,
+      expect.objectContaining({
+        zadatak_id: ZADATAK_ID,
+        student_id: STUDENT_ID,
+        novi_rok: noviRok,
+        razlog: "Odobrena dodatna vremena",
+        odobrio: PROFESOR_ID,
+      }),
+    );
+
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
+  });
 });

@@ -70,7 +70,6 @@ export function ProduzenjeRokaForma({
 
   return (
     <div className="min-w-64 space-y-3">
-
       <form action={akcija} className="space-y-3">
         <input
           type="hidden"

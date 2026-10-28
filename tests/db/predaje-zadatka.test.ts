@@ -1,4 +1,3 @@
-
 import {
   afterAll,
   beforeAll,
@@ -18,9 +17,8 @@ import {
   type Scena,
 } from "./scena";
 
-import {
-  predajeZadatka,
-} from "@/lib/servisi/predaje-zadatka";
+import { spremiProduzenjeRoka } from "@/lib/servisi/produzenja-roka";
+import { predajeZadatka } from "@/lib/servisi/predaje-zadatka";
 
 let o: Okruzenje;
 let s: Scena;
@@ -66,7 +64,9 @@ async function noviZadatak(
         opcije.dopustiKasnu ?? true,
       za_cijeli_kolegij:
         opcije.zaCijeliKolegij ?? true,
-      objavljen_at: new Date("2026-10-01T00:00:00.000Z"),
+      objavljen_at: new Date(
+        "2026-10-01T00:00:00.000Z",
+      ),
       created_by:
         kolegijId === s.K2
           ? s.N2.korisnik
@@ -244,5 +244,68 @@ describe("predajeZadatka", () => {
     );
 
     expect(redovi).toEqual([]);
+  });
+
+  it("primjenjuje kasniji izvorni rok nakon dodijeljenog produljenja", async () => {
+    const dan = 24 * 60 * 60 * 1000;
+    const sada = Date.now();
+
+    const izvorniRok = new Date(sada - 10 * dan);
+    const produljeniRok = new Date(sada - 5 * dan);
+    const noviIzvorniRok = new Date(sada + 5 * dan);
+
+    const zadatakId = await noviZadatak({
+      rok: izvorniRok,
+      dopustiKasnu: true,
+    });
+
+    // Nastavnik odobrava individualno produljenje.
+    await o.kao(s.N.korisnik, (tx) =>
+      spremiProduzenjeRoka(tx, {
+        zadatak_id: zadatakId,
+        student_id: s.S1.student,
+        novi_rok: produljeniRok,
+        razlog: "Regresijski test",
+        odobrio: s.N.korisnik,
+      }),
+    );
+
+    // Student predaje nakon individualnog produljenog roka.
+    await predaj(s.S1.korisnik, zadatakId);
+
+    // Nastavnik naknadno pomiče izvorni rok unaprijed.
+    await o.vlasnik
+      .updateTable("zadatak")
+      .set({
+        rok: noviIzvorniRok,
+      })
+      .where("id", "=", zadatakId)
+      .execute();
+
+    const redovi = await o.kao(
+      s.N.korisnik,
+      (tx) => predajeZadatka(tx, s.K1, zadatakId),
+    );
+
+    const s1 = redovi.find(
+      (red) => red.student_id === s.S1.student,
+    );
+
+    expect(s1).toBeDefined();
+    expect(s1?.predano_at).not.toBeNull();
+
+    // Rok mora pratiti kasniji izvorni rok.
+    expect(s1?.rok.getTime()).toBe(
+      noviIzvorniRok.getTime(),
+    );
+
+    // Trenutačni rok još nije prošao.
+    expect(s1?.rok_prosao).toBe(false);
+
+    // Predaja je prije novog izvornog roka.
+    expect(s1?.kasni).toBe(false);
+
+    // Produljenje više ne mijenja učinkoviti rok.
+    expect(s1?.ima_produljenje).toBe(false);
   });
 });
