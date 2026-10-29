@@ -639,5 +639,29 @@
     "deleting": "Removing…",
     "deleteSuccess": "Attachment removed.",
     "confirmDelete": "Remove the attachment “{name}”?"
+  },
+  "teacherDeadlineExtensions": {
+    "columnTitle": "Individual deadline",
+    "grant": "Grant extension",
+    "edit": "Edit extension",
+    "date": "New deadline date",
+    "time": "Deadline time",
+    "reason": "Reason (optional)",
+    "save": "Save extension",
+    "saving": "Saving…",
+    "remove": "Remove extension",
+    "removing": "Removing…",
+    "saved": "The deadline extension has been saved.",
+    "removed": "The deadline extension has been removed.",
+    "extended": "Extended",
+    "validation": {
+      "invalidAssignment": "Assignment not found or access denied.",
+      "invalidDate": "Select a valid date.",
+      "invalidTime": "Select a valid time.",
+      "invalidLocalTime": "The selected time does not exist in the Zagreb time zone.",
+      "reasonMax": "The reason cannot exceed 500 characters.",
+      "studentUnavailable": "This assignment is not assigned to the student, or access is denied.",
+      "mustBeAfterDeadline": "The new deadline must be later than the assignment's original deadline."
+    }
   }
 }

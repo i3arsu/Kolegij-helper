@@ -1,4 +1,3 @@
-
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
@@ -11,17 +10,18 @@ import {
 } from "@/components/ui";
 
 import {
-  upit,
-  zahtijevajOsoblje,
-} from "@/lib/auth/guard";
-import {
   formatDatumVrijeme,
   formatVrijeme,
   isoDatum,
 } from "@/lib/domena/vrijeme";
+import {
+  upit,
+  zahtijevajOsoblje,
+} from "@/lib/auth/guard";
 import { grupeSAsistentima } from "@/lib/servisi/kolegij";
 import { predajeZadatka } from "@/lib/servisi/predaje-zadatka";
 import { priloziZadatka } from "@/lib/servisi/prilozi-zadatka";
+import { produzenjaRokaZadatka } from "@/lib/servisi/produzenja-roka";
 import { zadatakKolegija } from "@/lib/servisi/zadaci";
 
 import {
@@ -66,7 +66,10 @@ export default async function DetaljiZadatka({
     // Samo nastavnik treba podatke za obrazac uređivanja.
     const grupe =
       uloga === "nastavnik"
-        ? await grupeSAsistentima(tx, kolegijId)
+        ? await grupeSAsistentima(
+            tx,
+            kolegijId,
+          )
         : [];
 
     // Predaje postoje samo za objavljene zadatke.
@@ -79,11 +82,22 @@ export default async function DetaljiZadatka({
             zadatakId,
           );
 
+    // Samo nastavnik upravlja pojedinačnim produljenjima.
+    const produzenja =
+      zadatak.objavljen_at === null ||
+      uloga !== "nastavnik"
+        ? []
+        : await produzenjaRokaZadatka(
+            tx,
+            zadatakId,
+          );
+
     return {
       zadatak,
       grupe,
       predaje,
       prilozi,
+      produzenja,
     };
   });
 
@@ -96,6 +110,7 @@ export default async function DetaljiZadatka({
     grupe,
     predaje,
     prilozi,
+    produzenja,
   } = rezultat;
 
   const t = await getTranslations(
@@ -245,6 +260,10 @@ export default async function DetaljiZadatka({
         zadatakId={zadatakId}
         objavljen={zadatak.objavljen_at !== null}
         predaje={predaje}
+        produzenja={produzenja}
+        mozeUpravljatiProduzenjima={
+          uloga === "nastavnik"
+        }
         searchParams={sp}
         jezik={jezik}
       />

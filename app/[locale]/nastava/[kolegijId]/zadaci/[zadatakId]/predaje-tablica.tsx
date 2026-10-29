@@ -1,5 +1,5 @@
-
 import { getTranslations } from "next-intl/server";
+
 import { Link } from "@/i18n/navigation";
 
 import {
@@ -13,8 +13,15 @@ import {
 } from "@/components/ui";
 
 import type { StatusPredaje } from "@/lib/db/tipovi";
+import {
+  formatDatumVrijeme,
+  formatVrijeme,
+  isoDatum,
+} from "@/lib/domena/vrijeme";
 import type { RedPredajeZadatka } from "@/lib/servisi/predaje-zadatka";
-import { formatDatumVrijeme } from "@/lib/domena/vrijeme";
+import type { ProduzenjeRokaZadatka } from "@/lib/servisi/produzenja-roka";
+
+import { ProduzenjeRokaForma } from "./produzenje-roka-forma";
 
 type Parametri = {
   status?: string | string[];
@@ -40,6 +47,8 @@ export async function PredajeZadatkaTablica({
   zadatakId,
   objavljen,
   predaje,
+  produzenja,
+  mozeUpravljatiProduzenjima,
   searchParams,
   jezik,
 }: {
@@ -47,10 +56,18 @@ export async function PredajeZadatkaTablica({
   zadatakId: string;
   objavljen: boolean;
   predaje: RedPredajeZadatka[];
+  produzenja: ProduzenjeRokaZadatka[];
+  mozeUpravljatiProduzenjima: boolean;
   searchParams: Parametri;
   jezik: "hr" | "en";
 }) {
-  const t = await getTranslations("teacherAssignmentSubmissions");
+  const t = await getTranslations(
+    "teacherAssignmentSubmissions",
+  );
+
+  const tProduzenje = await getTranslations(
+    "teacherDeadlineExtensions",
+  );
 
   // Nacrt zadatka ne treba prikazivati popis predaja.
   if (!objavljen) {
@@ -90,7 +107,9 @@ export async function PredajeZadatkaTablica({
     }
   }
 
-  function prikaziBodove(bodovi: string | null): string {
+  function prikaziBodove(
+    bodovi: string | null,
+  ): string {
     if (bodovi === null) {
       return "—";
     }
@@ -124,7 +143,9 @@ export async function PredajeZadatkaTablica({
 
   const grupaParam = jednaVrijednost(searchParams.grupa);
 
-  const grupa = grupe.some((stavka) => stavka.id === grupaParam)
+  const grupa = grupe.some(
+    (stavka) => stavka.id === grupaParam,
+  )
     ? grupaParam
     : "";
 
@@ -143,6 +164,14 @@ export async function PredajeZadatkaTablica({
     return true;
   });
 
+  // Brzo pronalaženje produljenja za svakog studenta.
+  const produzenjaPoStudentu = new Map(
+    produzenja.map((produzenje) => [
+      produzenje.student_id,
+      produzenje,
+    ]),
+  );
+
   return (
     <Kartica naslov={t("title")}>
       <div className="space-y-4">
@@ -158,7 +187,10 @@ export async function PredajeZadatkaTablica({
             <option value="">{t("allStatuses")}</option>
 
             {STATUSI.map((vrijednost) => (
-              <option key={vrijednost} value={vrijednost}>
+              <option
+                key={vrijednost}
+                value={vrijednost}
+              >
                 {nazivStatusa(vrijednost)}
               </option>
             ))}
@@ -172,15 +204,22 @@ export async function PredajeZadatkaTablica({
             <option value="">{t("allGroups")}</option>
 
             {grupe.map((stavka) => (
-              <option key={stavka.id} value={stavka.id}>
+              <option
+                key={stavka.id}
+                value={stavka.id}
+              >
                 {stavka.naziv}
               </option>
             ))}
           </Odabir>
 
-          <Gumb type="submit">{t("filter")}</Gumb>
+          <Gumb type="submit">
+            {t("filter")}
+          </Gumb>
 
-          <GumbLink href={`/nastava/${kolegijId}/zadaci/${zadatakId}`}>
+          <GumbLink
+            href={`/nastava/${kolegijId}/zadaci/${zadatakId}`}
+          >
             {t("reset")}
           </GumbLink>
         </form>
@@ -205,71 +244,142 @@ export async function PredajeZadatkaTablica({
                 <th>{t("submittedAt")}</th>
                 <th>{t("deadlineStatus")}</th>
                 <th>{t("points")}</th>
+
+                {mozeUpravljatiProduzenjima && (
+                  <th>{tProduzenje("columnTitle")}</th>
+                )}
               </tr>
             </thead>
 
             <tbody>
-              {filtrirane.map((predaja) => (
-                <tr key={predaja.student_id}>
-                  <td>
-                    <Link
-                      className="font-medium hover:underline"
-                      href={`/nastava/${kolegijId}/studenti/${predaja.student_id}`}
-                    >
-                      {predaja.prezime} {predaja.ime}
-                    </Link>
-                  </td>
+              {filtrirane.map((predaja) => {
+                const produzenje =
+                  produzenjaPoStudentu.get(
+                    predaja.student_id,
+                  );
 
-                  <td className="tabular-nums">
-                    {predaja.jmbag}
-                  </td>
+                return (
+                  <tr key={predaja.student_id}>
+                    <td>
+                      <Link
+                        className="font-medium hover:underline"
+                        href={`/nastava/${kolegijId}/studenti/${predaja.student_id}`}
+                      >
+                        {predaja.prezime} {predaja.ime}
+                      </Link>
+                    </td>
 
-                  <td>
-                    {predaja.grupe.length > 0 ? (
-                      predaja.grupe
-                        .map((stavka) => stavka.naziv)
-                        .join(", ")
-                    ) : (
-                      <span className="text-tekst-slab">—</span>
-                    )}
-                  </td>
+                    <td className="tabular-nums">
+                      {predaja.jmbag}
+                    </td>
 
-                  <td>
-                    <Oznaka ton={tonStatusa(predaja.status)}>
-                      {nazivStatusa(predaja.status)}
-                    </Oznaka>
-                  </td>
-
-                  <td className="text-tekst-slab">
-                    {predaja.predano_at
-                      ? formatDatumVrijeme(predaja.predano_at, jezik)
-                      : "—"}
-                  </td>
-
-                  <td>
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="tabular-nums">{formatDatumVrijeme(predaja.rok, jezik)}</span>
-
-                      {predaja.kasni ? (
-                        <Oznaka ton="upozorenje">
-                          {t("late")}
-                        </Oznaka>
-                      ) : predaja.status === "nije_predano" &&
-                        predaja.rok_prosao ? (
-                        <Oznaka ton="upozorenje">
-                          {t("deadlinePassed")}
-                        </Oznaka>
+                    <td>
+                      {predaja.grupe.length > 0 ? (
+                        predaja.grupe
+                          .map((stavka) => stavka.naziv)
+                          .join(", ")
                       ) : (
-                      <span className="text-tekst-slab">—</span>
+                        <span className="text-tekst-slab">
+                          —
+                        </span>
                       )}
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="tabular-nums">
-                    {prikaziBodove(predaja.bodovi)}
-                  </td>
-                </tr>
-              ))}
+                    <td>
+                      <Oznaka
+                        ton={tonStatusa(predaja.status)}
+                      >
+                        {nazivStatusa(predaja.status)}
+                      </Oznaka>
+                    </td>
+
+                    <td className="text-tekst-slab">
+                      {predaja.predano_at
+                        ? formatDatumVrijeme(
+                            predaja.predano_at,
+                            jezik,
+                          )
+                        : "—"}
+                    </td>
+
+                    <td>
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="tabular-nums">
+                            {formatDatumVrijeme(
+                              predaja.rok,
+                              jezik,
+                            )}
+                          </span>
+
+                          {predaja.ima_produljenje && (
+                            <Oznaka ton="neutralno">
+                              {tProduzenje("extended")}
+                            </Oznaka>
+                          )}
+                        </div>
+
+                        {predaja.kasni ? (
+                          <Oznaka ton="upozorenje">
+                            {t("late")}
+                          </Oznaka>
+                        ) : predaja.status === "nije_predano" &&
+                          predaja.rok_prosao ? (
+                          <Oznaka ton="upozorenje">
+                            {t("deadlinePassed")}
+                          </Oznaka>
+                        ) : (
+                          <span className="text-tekst-slab">
+                            —
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="tabular-nums">
+                      {prikaziBodove(predaja.bodovi)}
+                    </td>
+
+                    {mozeUpravljatiProduzenjima && (
+                      <td className="align-top">
+                        <details className="min-w-64">
+                          <summary className="cursor-pointer text-sm font-medium underline underline-offset-4">
+                            {tProduzenje(
+                              produzenje ? "edit" : "grant",
+                            )}
+                          </summary>
+
+                          <div className="mt-3">
+                            <ProduzenjeRokaForma
+                              kolegijId={kolegijId}
+                              zadatakId={zadatakId}
+                              studentId={predaja.student_id}
+                              datum={
+                                produzenje
+                                  ? isoDatum(
+                                      produzenje.novi_rok,
+                                    )
+                                  : ""
+                              }
+                              vrijeme={
+                                produzenje
+                                  ? formatVrijeme(
+                                      produzenje.novi_rok,
+                                    )
+                                  : ""
+                              }
+                              razlog={
+                                produzenje?.razlog ?? null
+                              }
+                              postoji={Boolean(produzenje)}
+                            />
+                          </div>
+                        </details>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </Tablica>
         )}

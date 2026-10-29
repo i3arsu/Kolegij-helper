@@ -639,5 +639,29 @@
     "deleting": "Uklanjanje…",
     "deleteSuccess": "Prilog je uklonjen.",
     "confirmDelete": "Želite li ukloniti prilog „{name}”?"
+  },
+  "teacherDeadlineExtensions": {
+    "columnTitle": "Pojedinačni rok",
+    "grant": "Dodijeli produljenje",
+    "edit": "Uredi produljenje",
+    "date": "Datum novog roka",
+    "time": "Vrijeme roka",
+    "reason": "Razlog (neobavezno)",
+    "save": "Spremi produljenje",
+    "saving": "Spremanje…",
+    "remove": "Ukloni produljenje",
+    "removing": "Uklanjanje…",
+    "saved": "Produljenje roka je spremljeno.",
+    "removed": "Produljenje roka je uklonjeno.",
+    "extended": "Produljeno",
+    "validation": {
+      "invalidAssignment": "Zadatak nije pronađen ili nemate ovlasti.",
+      "invalidDate": "Odaberite valjan datum.",
+      "invalidTime": "Odaberite valjano vrijeme.",
+      "invalidLocalTime": "Odabrano vrijeme ne postoji u vremenskoj zoni Zagreba.",
+      "reasonMax": "Razlog ne smije biti duži od 500 znakova.",
+      "studentUnavailable": "Studentu nije dodijeljen ovaj zadatak ili nemate ovlasti.",
+      "mustBeAfterDeadline": "Novi rok mora biti nakon izvornog roka zadatka."
+    }
   }
 }

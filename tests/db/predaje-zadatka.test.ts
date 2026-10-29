@@ -1,4 +1,3 @@
-
 import {
   afterAll,
   beforeAll,
@@ -18,13 +17,11 @@ import {
   type Scena,
 } from "./scena";
 
-import {
-  predajeZadatka,
-} from "@/lib/servisi/predaje-zadatka";
+import { spremiProduzenjeRoka } from "@/lib/servisi/produzenja-roka";
+import { predajeZadatka } from "@/lib/servisi/predaje-zadatka";
 
 let o: Okruzenje;
 let s: Scena;
-
 let brojac = 0;
 
 beforeAll(async () => {
@@ -66,7 +63,9 @@ async function noviZadatak(
         opcije.dopustiKasnu ?? true,
       za_cijeli_kolegij:
         opcije.zaCijeliKolegij ?? true,
-      objavljen_at: new Date("2026-10-01T00:00:00.000Z"),
+      objavljen_at: new Date(
+        "2026-10-01T00:00:00.000Z",
+      ),
       created_by:
         kolegijId === s.K2
           ? s.N2.korisnik
@@ -122,127 +121,291 @@ async function predaj(
 }
 
 describe("predajeZadatka", () => {
-  it("nastavnik vidi sve dodijeljene studente, uključujući one koji nisu predali", async () => {
-    const zadatakId = await noviZadatak();
+  it(
+    "nastavnik vidi sve dodijeljene studente, uključujući one koji nisu predali",
+    async () => {
+      const zadatakId = await noviZadatak();
 
-    const redovi = await o.kao(
-      s.N.korisnik,
-      (tx) => predajeZadatka(tx, s.K1, zadatakId),
-    );
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
 
-    expect(
-      redovi.map((r) => r.student_id),
-    ).toEqual([s.S1.student, s.S2.student]);
+      expect(
+        redovi.map((r) => r.student_id),
+      ).toEqual([s.S1.student, s.S2.student]);
 
-    expect(
-      redovi.every((r) => r.status === "nije_predano"),
-    ).toBe(true);
+      expect(
+        redovi.every(
+          (r) => r.status === "nije_predano",
+        ),
+      ).toBe(true);
 
-    expect(
-      redovi.every((r) => r.predaja_id === null),
-    ).toBe(true);
+      expect(
+        redovi.every((r) => r.predaja_id === null),
+      ).toBe(true);
 
-    expect(
-      redovi.every((r) => r.trenutna_verzija === 0),
-    ).toBe(true);
-  });
+      expect(
+        redovi.every(
+          (r) => r.trenutna_verzija === 0,
+        ),
+      ).toBe(true);
+    },
+  );
 
-  it("prikazuje trenutne grupe svakog studenta", async () => {
-    const zadatakId = await noviZadatak();
+  it(
+    "prikazuje trenutne grupe svakog studenta",
+    async () => {
+      const zadatakId = await noviZadatak();
 
-    const redovi = await o.kao(
-      s.N.korisnik,
-      (tx) => predajeZadatka(tx, s.K1, zadatakId),
-    );
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
 
-    const s1 = redovi.find(
-      (r) => r.student_id === s.S1.student,
-    );
+      const s1 = redovi.find(
+        (r) => r.student_id === s.S1.student,
+      );
 
-    const s2 = redovi.find(
-      (r) => r.student_id === s.S2.student,
-    );
+      const s2 = redovi.find(
+        (r) => r.student_id === s.S2.student,
+      );
 
-    expect(
-      s1?.grupe.map((g) => g.id).sort(),
-    ).toEqual([s.G.P1, s.G.V1].sort());
+      expect(
+        s1?.grupe.map((g) => g.id).sort(),
+      ).toEqual([s.G.P1, s.G.V1].sort());
 
-    expect(
-      s2?.grupe.map((g) => g.id).sort(),
-    ).toEqual([s.G.P1, s.G.V2].sort());
-  });
+      expect(
+        s2?.grupe.map((g) => g.id).sort(),
+      ).toEqual([s.G.P1, s.G.V2].sort());
+    },
+  );
 
-  it("za zadatak namijenjen grupi V1 ne uključuje studenta iz V2", async () => {
-    const zadatakId = await noviZadatak({
-      zaCijeliKolegij: false,
-      grupaIds: [s.G.V1],
-    });
+  it(
+    "za zadatak namijenjen grupi V1 ne uključuje studenta iz V2",
+    async () => {
+      const zadatakId = await noviZadatak({
+        zaCijeliKolegij: false,
+        grupaIds: [s.G.V1],
+      });
 
-    const redovi = await o.kao(
-      s.N.korisnik,
-      (tx) => predajeZadatka(tx, s.K1, zadatakId),
-    );
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
 
-    expect(
-      redovi.map((r) => r.student_id),
-    ).toEqual([s.S1.student]);
-  });
+      expect(
+        redovi.map((r) => r.student_id),
+      ).toEqual([s.S1.student]);
+    },
+  );
 
-  it("asistent vidi samo studente koje dopuštaju postojeće politike RLS", async () => {
-    const zadatakId = await noviZadatak();
+  it(
+    "asistent vidi samo studente koje dopuštaju postojeće politike RLS",
+    async () => {
+      const zadatakId = await noviZadatak();
 
-    const redovi = await o.kao(
-      s.A.korisnik,
-      (tx) => predajeZadatka(tx, s.K1, zadatakId),
-    );
+      const redovi = await o.kao(
+        s.A.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
 
-    expect(
-      redovi.map((r) => r.student_id),
-    ).toEqual([s.S1.student]);
+      expect(
+        redovi.map((r) => r.student_id),
+      ).toEqual([s.S1.student]);
 
-    expect(
-      redovi.some((r) => r.student_id === s.S2.student),
-    ).toBe(false);
-  });
+      expect(
+        redovi.some(
+          (r) => r.student_id === s.S2.student,
+        ),
+      ).toBe(false);
+    },
+  );
 
-  it("prikazuje predaju, vrijeme predaje i zakašnjenje", async () => {
-    const zadatakId = await noviZadatak({
-      rok: new Date("2020-01-01T00:00:00.000Z"),
-      dopustiKasnu: true,
-    });
+  it(
+    "prikazuje predaju, vrijeme predaje i zakašnjenje",
+    async () => {
+      const zadatakId = await noviZadatak({
+        rok: new Date("2020-01-01T00:00:00.000Z"),
+        dopustiKasnu: true,
+      });
 
-    const rezultat = await predaj(
-      s.S1.korisnik,
-      zadatakId,
-    );
+      const rezultat = await predaj(
+        s.S1.korisnik,
+        zadatakId,
+      );
 
-    const redovi = await o.kao(
-      s.N.korisnik,
-      (tx) => predajeZadatka(tx, s.K1, zadatakId),
-    );
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
 
-    const s1 = redovi.find(
-      (r) => r.student_id === s.S1.student,
-    );
+      const s1 = redovi.find(
+        (r) => r.student_id === s.S1.student,
+      );
 
-    expect(s1?.predaja_id).toBe(rezultat.predaja_id);
-    expect(s1?.status).toBe("predano");
-    expect(s1?.trenutna_verzija).toBe(1);
-    expect(s1?.predano_at).not.toBeNull();
-    expect(s1?.kasni).toBe(true);
-    expect(s1?.rok_prosao).toBe(true);
-  });
+      expect(s1?.predaja_id).toBe(
+        rezultat.predaja_id,
+      );
+      expect(s1?.status).toBe("predano");
+      expect(s1?.trenutna_verzija).toBe(1);
+      expect(s1?.predano_at).not.toBeNull();
+      expect(s1?.kasni).toBe(true);
+      expect(s1?.rok_prosao).toBe(true);
+    },
+  );
 
-  it("ne vraća zadatke drugog kolegija", async () => {
-    const zadatakId = await noviZadatak({
-      kolegijId: s.K2,
-    });
+  it(
+    "ne vraća zadatke drugog kolegija",
+    async () => {
+      const zadatakId = await noviZadatak({
+        kolegijId: s.K2,
+      });
 
-    const redovi = await o.kao(
-      s.N.korisnik,
-      (tx) => predajeZadatka(tx, s.K1, zadatakId),
-    );
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
 
-    expect(redovi).toEqual([]);
-  });
+      expect(redovi).toEqual([]);
+    },
+  );
+
+  it(
+    "primjenjuje kasniji izvorni rok nakon dodijeljenog produljenja",
+    async () => {
+      const dan = 24 * 60 * 60 * 1000;
+      const sada = Date.now();
+
+      const izvorniRok = new Date(sada - 10 * dan);
+      const produljeniRok = new Date(sada - 5 * dan);
+      const noviIzvorniRok = new Date(sada + 5 * dan);
+
+      const zadatakId = await noviZadatak({
+        rok: izvorniRok,
+        dopustiKasnu: true,
+      });
+
+      // Nastavnik odobrava individualno produljenje.
+      await o.kao(s.N.korisnik, (tx) =>
+        spremiProduzenjeRoka(tx, {
+          zadatak_id: zadatakId,
+          student_id: s.S1.student,
+          novi_rok: produljeniRok,
+          razlog: "Regresijski test",
+          odobrio: s.N.korisnik,
+        }),
+      );
+
+      // Student predaje nakon individualnog produljenog roka.
+      await predaj(s.S1.korisnik, zadatakId);
+
+      // Nastavnik naknadno pomiče izvorni rok unaprijed.
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({
+          rok: noviIzvorniRok,
+        })
+        .where("id", "=", zadatakId)
+        .execute();
+
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
+
+      const s1 = redovi.find(
+        (red) => red.student_id === s.S1.student,
+      );
+
+      expect(s1).toBeDefined();
+      expect(s1?.predano_at).not.toBeNull();
+
+      // Rok mora pratiti kasniji izvorni rok.
+      expect(s1?.rok.getTime()).toBe(
+        noviIzvorniRok.getTime(),
+      );
+
+      // Trenutačni rok još nije prošao.
+      expect(s1?.rok_prosao).toBe(false);
+
+      // Predaja je prije novog izvornog roka.
+      expect(s1?.kasni).toBe(false);
+
+      // Produljenje više ne mijenja učinkoviti rok.
+      expect(s1?.ima_produljenje).toBe(false);
+    },
+  );
+
+  it(
+    "omogućuje predaju kada je izvorni rok pomaknut nakon isteka produljenja i kasna predaja nije dopuštena",
+    async () => {
+      const dan = 24 * 60 * 60 * 1000;
+      const sada = Date.now();
+
+      const izvorniRok = new Date(sada - 10 * dan);
+      const produljeniRok = new Date(sada - 5 * dan);
+      const noviIzvorniRok = new Date(sada + 5 * dan);
+
+      const zadatakId = await noviZadatak({
+        rok: izvorniRok,
+        dopustiKasnu: false,
+      });
+
+      // Nastavnik odobrava individualno produljenje.
+      await o.kao(s.N.korisnik, (tx) =>
+        spremiProduzenjeRoka(tx, {
+          zadatak_id: zadatakId,
+          student_id: s.S1.student,
+          novi_rok: produljeniRok,
+          razlog: "Regresijski test",
+          odobrio: s.N.korisnik,
+        }),
+      );
+
+      // Nastavnik pomiče izvorni rok u budućnost.
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({
+          rok: noviIzvorniRok,
+        })
+        .where("id", "=", zadatakId)
+        .execute();
+
+      // Student mora moći predati zadatak jer je rok efektivni u budućnosti.
+      const rezultat = await predaj(
+        s.S1.korisnik,
+        zadatakId,
+      );
+
+      expect(rezultat.predaja_id).toBeDefined();
+      expect(rezultat.verzija).toBe(1);
+
+      // Provjeravamo da prikaz predaja koristi isti efektivni rok.
+      const redovi = await o.kao(
+        s.N.korisnik,
+        (tx) => predajeZadatka(tx, s.K1, zadatakId),
+      );
+
+      const s1 = redovi.find(
+        (red) => red.student_id === s.S1.student,
+      );
+
+      expect(s1).toBeDefined();
+      expect(s1?.predaja_id).toBe(
+        rezultat.predaja_id,
+      );
+      expect(s1?.status).toBe("predano");
+      expect(s1?.trenutna_verzija).toBe(1);
+      expect(s1?.predano_at).not.toBeNull();
+
+      // Rok mora coincidir amb el termini original actualitzat.
+      expect(s1?.rok.getTime()).toBe(
+        noviIzvorniRok.getTime(),
+      );
+
+      expect(s1?.rok_prosao).toBe(false);
+      expect(s1?.kasni).toBe(false);
+    },
+  );
 });
