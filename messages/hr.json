@@ -331,6 +331,15 @@
     "name": "Ime",
     "role": "Uloga",
     "remove": "Ukloni",
+    "templates": "Predlošci komentara",
+    "templateTitle": "Naslov predloška",
+    "templateText": "Tekst komentara",
+    "createTemplate": "Novi predložak",
+    "updateTemplate": "Spremi izmjene",
+    "deleteTemplate": "Obriši",
+    "templateCreated": "Predložak je dodan.",
+    "templateUpdated": "Predložak je ažuriran.",
+    "templateDeleted": "Predložak je obrisan.",
     "roles": {
       "nastavnik": "nastavnik",
       "asistent": "asistent"
@@ -350,7 +359,11 @@
     "add": "Dodaj",
     "validation": {
       "percentRange": "Postotak mora biti između 0 i 100",
-      "invalidEmail": "Neispravan e-mail"
+      "invalidEmail": "Neispravan e-mail",
+      "titleRequired": "Naslov je obavezan.",
+      "titleTooLong": "Naslov smije imati najviše 120 znakova.",
+      "textRequired": "Tekst komentara je obavezan.",
+      "textTooLong": "Tekst komentara smije imati najviše 5000 znakova."
     },
     "rulesSaved": "Pravila su spremljena.",
     "added": "Dodano."
@@ -451,6 +464,7 @@
     "invalidAssignmentGroups": "Jedna ili više odabranih grupa ne pripada ovom kolegiju.",
     "assignmentNotFound": "Zadatak nije pronađen ili mu nemate pristup.",
     "assignmentAlreadyPublished": "Zadatak je već objavljen.",
+    "commentTemplateNotFound": "Predložak komentara nije pronađen ili mu nemate pristup.",
     "db": {
       "studentNotEnrolled": "Student nije upisan na kolegij",
       "studentNotInGroup": "Student nije član grupe u vrijeme termina",
