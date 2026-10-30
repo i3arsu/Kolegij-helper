@@ -1,6 +1,6 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { greskaKod, novoOkruzenje, type Okruzenje } from "./pomocnici";
+import { novoOkruzenje, type Okruzenje } from "./pomocnici";
 import { postaviScenu, type Scena } from "./scena";
 import {
   kreirajPredlozakKomentara,
@@ -77,8 +77,8 @@ describe("predlošci komentara", () => {
     );
   });
 
-  it("asistent može čitati predloške, ali ih ne može stvarati", async () => {
-    await o.kao(s.N.korisnik, (tx) =>
+  it("asistent može čitati predloške, ali ih ne može stvarati, uređivati ni brisati", async () => {
+    const predlozak = await o.kao(s.N.korisnik, (tx) =>
       kreirajPredlozakKomentara(tx, s.K1, {
         naslov: "Povratna informacija",
         tekst: "Dobro urađeno.",
@@ -89,19 +89,54 @@ describe("predlošci komentara", () => {
       predlosciKomentara(tx, s.K1),
     );
 
-    expect(predlosci.length).toBeGreaterThan(0);
+    expect(predlosci).toContainEqual(
+      expect.objectContaining({ id: predlozak.id }),
+    );
 
     await expect(
-      greskaKod(
-        o.kao(s.A.korisnik, (tx) =>
-          kreirajPredlozakKomentara(tx, s.K1, {
-            naslov: "Nedopušten predložak",
-            tekst: "Ovaj upis treba biti odbijen.",
-          }),
-        ),
+      o.kao(s.A.korisnik, (tx) =>
+        kreirajPredlozakKomentara(tx, s.K1, {
+          naslov: "Nedopušten predložak",
+          tekst: "Ovaj upis treba biti odbijen.",
+        }),
       ),
-    ).resolves.toBe("42501");
+    ).rejects.toMatchObject({ code: "42501" });
+
+    await expect(
+      o.kao(s.A.korisnik, (tx) =>
+        urediPredlozakKomentara(tx, s.K1, predlozak.id, {
+          naslov: "Nedopuštena izmjena",
+          tekst: "Izmijenjeni tekst.",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      kljuc: "commentTemplateNotFound",
+    });
+
+    await expect(
+      o.kao(s.A.korisnik, (tx) =>
+        ukloniPredlozakKomentara(tx, s.K1, predlozak.id),
+      ),
+    ).rejects.toMatchObject({
+      kljuc: "commentTemplateNotFound",
+    });
   });
+
+  it("student ne vidi predloške komentara", async () => {
+  await o.kao(s.N.korisnik, (tx) =>
+    kreirajPredlozakKomentara(tx, s.K1, {
+      naslov: "Samo za osoblje",
+      tekst: "Ovu predložak student ne bi trebao vidjeti.",
+    }),
+  );
+
+  const predlosci = await o.kao(s.S1.korisnik, (tx) =>
+    predlosciKomentara(tx, s.K1),
+  );
+
+  expect(predlosci).toEqual([]);
+});
+
 
   it("nastavnik drugog kolegija ne može urediti predložak prvog kolegija", async () => {
     const predlozak = await o.kao(s.N.korisnik, (tx) =>

@@ -276,15 +276,11 @@ export function FormaPredloska({
       </form>
 
       <div className="border-t border-rub pt-3">
-        <form action={akcijaUkloni} className="grid gap-3">
+        <form action={akcijaUkloni} className="grid gap-3" onSubmit={(e) => {if (!window.confirm(t("deleteTemplateConfirm"))) {e.preventDefault();}}}>
           <input type="hidden" name="locale" value={locale} />
 
           {stanjeUkloni.greska && (
             <Poruka vrsta="greska">{stanjeUkloni.greska}</Poruka>
-          )}
-
-          {stanjeUkloni.ok && (
-            <Poruka vrsta="uspjeh">{stanjeUkloni.ok}</Poruka>
           )}
 
           <div>

@@ -337,6 +337,7 @@
     "createTemplate": "Novi predložak",
     "updateTemplate": "Spremi izmjene",
     "deleteTemplate": "Obriši",
+    "deleteTemplateConfirm": "Jeste li sigurni da želite obrisati ovaj predložak komentara?",
     "templateCreated": "Predložak je dodan.",
     "templateUpdated": "Predložak je ažuriran.",
     "templateDeleted": "Predložak je obrisan.",
