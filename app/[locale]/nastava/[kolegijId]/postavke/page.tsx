@@ -2,16 +2,21 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Gumb, Kartica, Tablica } from "@/components/ui";
 import { upit, zahtijevajNastavnika } from "@/lib/auth/guard";
-import { osobljeKolegija, pravilaProlaza } from "@/lib/servisi/kolegij";
+import {
+  osobljeKolegija,
+  pravilaProlaza,
+  predlosciKomentara,
+} from "@/lib/servisi/kolegij";
 import { ukloniOsobljeAkcija } from "./akcije";
-import { FormaOsoblja, FormaPravila } from "./forme";
+import { FormaOsoblja, FormaPravila, FormePredlozaka } from "./forme";
 
 export default async function Postavke({ params }: PageProps<"/[locale]/nastava/[kolegijId]/postavke">) {
   const { kolegijId } = await params;
   await zahtijevajNastavnika(kolegijId);
-  const { pravila, osoblje, ja } = await upit(async (tx, profil) => ({
+  const { pravila, osoblje, predlosci, ja } = await upit(async (tx, profil) => ({
     pravila: await pravilaProlaza(tx, kolegijId),
     osoblje: await osobljeKolegija(tx, kolegijId),
+    predlosci: await predlosciKomentara(tx, kolegijId),
     ja: profil.osoblje?.id,
   }));
   if (!pravila) notFound();
@@ -42,6 +47,11 @@ export default async function Postavke({ params }: PageProps<"/[locale]/nastava/
         </Tablica>
         <div className="mt-4"><FormaOsoblja kolegijId={kolegijId} /></div>
       </Kartica>
+      <div className="lg:col-span-2">
+        <Kartica naslov={t("templates")}>
+          <FormePredlozaka kolegijId={kolegijId} predlosci={predlosci} />
+        </Kartica>
+      </div>
     </div>
   );
 }

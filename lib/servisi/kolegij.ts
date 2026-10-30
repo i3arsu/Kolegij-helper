@@ -104,3 +104,65 @@ export async function spremiPravila(
   const r = await tx.updateTable("pravila_prolaza").set(p).where("kolegij_id", "=", kolegijId).executeTakeFirst();
   if (Number(r.numUpdatedRows) === 0) throw new GreskaAplikacije("rulesForbidden");
 }
+
+export async function predlosciKomentara(tx: Tx, kolegijId: string) {
+  return tx
+    .selectFrom("predlozak_komentara")
+    .select(["id", "kolegij_id", "naslov", "tekst"])
+    .where("kolegij_id", "=", kolegijId)
+    .orderBy("naslov")
+    .execute();
+}
+
+export async function kreirajPredlozakKomentara(
+  tx: Tx,
+  kolegijId: string,
+  p: { naslov: string; tekst: string },
+) {
+  return tx
+    .insertInto("predlozak_komentara")
+    .values({
+      kolegij_id: kolegijId,
+      naslov: p.naslov.trim(),
+      tekst: p.tekst.trim(),
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+}
+
+export async function urediPredlozakKomentara(
+  tx: Tx,
+  kolegijId: string,
+  predlozakId: string,
+  p: { naslov: string; tekst: string },
+) {
+  const rezultat = await tx
+    .updateTable("predlozak_komentara")
+    .set({
+      naslov: p.naslov.trim(),
+      tekst: p.tekst.trim(),
+    })
+    .where("id", "=", predlozakId)
+    .where("kolegij_id", "=", kolegijId)
+    .executeTakeFirst();
+
+  if (Number(rezultat.numUpdatedRows) === 0) {
+    throw new GreskaAplikacije("commentTemplateNotFound");
+  }
+}
+
+export async function ukloniPredlozakKomentara(
+  tx: Tx,
+  kolegijId: string,
+  predlozakId: string,
+) {
+  const rezultat = await tx
+    .deleteFrom("predlozak_komentara")
+    .where("id", "=", predlozakId)
+    .where("kolegij_id", "=", kolegijId)
+    .executeTakeFirst();
+
+  if (Number(rezultat.numDeletedRows) === 0) {
+    throw new GreskaAplikacije("commentTemplateNotFound");
+  }
+}
