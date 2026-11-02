@@ -1,19 +1,61 @@
 
 import { getTranslations } from "next-intl/server";
-import { Kartica, TrakaPostotka } from "@/components/ui";
+
+import {
+  Kartica,
+  TrakaPostotka,
+  Oznaka,
+  GumbLink,
+} from "@/components/ui";
+
+import {
+  formatDatumDan,
+  formatVrijeme,
+  formatDatumVrijeme,
+} from "@/lib/domena/vrijeme";
+
 import { upit } from "@/lib/auth/guard";
-import { formatDatumDan, formatVrijeme } from "@/lib/domena/vrijeme";
 import { mojPregled } from "@/lib/servisi/student";
+
+import {
+  sljedeciRokoviStudenta,
+  zadnjePovratneInformacije,
+} from "@/lib/servisi/zadaci-studenta";
 
 export default async function MojPregled({
   params,
 }: PageProps<"/[locale]/moj/[kolegijId]">) {
   const { kolegijId, locale } = await params;
-  const t = await getTranslations("studentCourse");
 
-  const p = await upit((tx, profil) =>
-    mojPregled(tx, kolegijId, profil.student!.id)
-  );
+  const t = await getTranslations("studentCourse");
+  const td = await getTranslations("studentDashboard");
+
+  // Dohvaćamo sve podatke potrebne za studentski dashboard.
+  const { p, rokovi, povratne } = await upit(async (tx, profil) => {
+    const pregled = await mojPregled(
+      tx,
+      kolegijId,
+      profil.student!.id,
+    );
+
+    const rokovi = await sljedeciRokoviStudenta(
+      tx,
+      kolegijId,
+      profil.student!.id,
+    );
+
+    const povratne = await zadnjePovratneInformacije(
+      tx,
+      kolegijId,
+      profil.student!.id,
+    );
+
+    return {
+      p: pregled,
+      rokovi,
+      povratne,
+    };
+  });
 
   const pravilo = (tip: string) =>
     p.pravila
@@ -24,8 +66,12 @@ export default async function MojPregled({
         )
       : null;
 
+  const jezik = locale === "en" ? "en" : "hr";
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
+
+      {/* 1. Evidencija dolaznosti */}
       <Kartica naslov={t("attendanceTitle")}>
         <div className="space-y-4">
           {(["predavanje", "vjezbe"] as const).map((tip) => {
@@ -67,6 +113,7 @@ export default async function MojPregled({
         </div>
       </Kartica>
 
+      {/* 2. Sljedeće zakazane nastavne aktivnosti */}
       <Kartica naslov={t("upcomingTitle")}>
         {p.sljedeci.length === 0 ? (
           <p className="text-sm text-tekst-slab">
@@ -76,13 +123,142 @@ export default async function MojPregled({
           <ul className="space-y-1 text-sm">
             {p.sljedeci.map((termin) => (
               <li key={termin.id}>
-                {formatDatumDan(termin.pocetak,locale === "en" ? "en" : "hr")}{" "}
-                {formatVrijeme(termin.pocetak)}–{formatVrijeme(termin.kraj)}
+                {formatDatumDan(termin.pocetak, jezik)}{" "}
+                {formatVrijeme(termin.pocetak)}–
+                {formatVrijeme(termin.kraj)}
                 {" · "}
                 {termin.grupa}
                 {termin.tema ? ` · ${termin.tema}` : ""}
               </li>
             ))}
+          </ul>
+        )}
+      </Kartica>
+
+      {/* 3. Nadolazeći rokovi zadataka */}
+      <Kartica naslov={td("deadlinesTitle")}>
+        {rokovi.length === 0 ? (
+          <p className="text-sm text-tekst-slab">
+            {td("noDeadlines")}
+          </p>
+        ) : (
+          <ul className="space-y-4">
+            {rokovi.map((rok) => (
+              <li
+                key={rok.zadatak_id}
+                className="space-y-2 border-b border-gray-200 pb-3 last:border-0 last:pb-0"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium">
+                      {rok.naslov}
+                    </p>
+
+                    {rok.rok_za_predaju && (
+                      <p className="mt-1 text-sm text-tekst-slab">
+                        {td("deadline")}:{" "}
+                        {formatDatumVrijeme(
+                          rok.rok_za_predaju,
+                          jezik,
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  <Oznaka
+                    ton={
+                      rok.status === "vraceno_na_doradu"
+                        ? "upozorenje"
+                        : "neutralno"
+                    }
+                  >
+                    {rok.status === "vraceno_na_doradu"
+                      ? td("revision")
+                      : td("notSubmitted")}
+                  </Oznaka>
+                </div>
+
+                <GumbLink
+                  href={`/moj/${kolegijId}/zadaci/${rok.zadatak_id}`}
+                >
+                  {td("openAssignment")}
+                </GumbLink>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Kartica>
+
+      {/* 4. Najnovije povratne informacije nastavnika */}
+      <Kartica naslov={td("feedbackTitle")}>
+        {povratne.length === 0 ? (
+          <p className="text-sm text-tekst-slab">
+            {td("noFeedback")}
+          </p>
+        ) : (
+          <ul className="space-y-4">
+            {povratne.map((povratna, index) => {
+              const prihvaceno =
+                povratna.odluka === "prihvaceno";
+
+              return (
+                <li
+                  key={`${povratna.zadatak_id}-${povratna.verzija}-${index}`}
+                  className="space-y-2 border-b border-gray-200 pb-3 last:border-0 last:pb-0"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium">
+                      {povratna.naslov}
+                    </p>
+
+                    <Oznaka
+                      ton={prihvaceno ? "uspjeh" : "upozorenje"}
+                    >
+                      {prihvaceno
+                        ? td("accepted")
+                        : td("returned")}
+                    </Oznaka>
+                  </div>
+
+                  <p className="text-xs text-tekst-slab">
+                    {td("version")} {povratna.verzija}
+                    {" · "}
+                    {formatDatumVrijeme(
+                      povratna.povratna_at,
+                      jezik,
+                    )}
+                  </p>
+
+                  {povratna.komentar && (
+                    <p className="whitespace-pre-wrap text-sm">
+                      {povratna.komentar}
+                    </p>
+                  )}
+
+                  {povratna.bodovi !== null && (
+                    <p className="text-sm">
+                      {td("points")}: {Number(povratna.bodovi)}
+                    </p>
+                  )}
+
+                  {povratna.rok_dorade && (
+                    <p className="text-sm text-amber-700">
+                      {td("revisionDeadline")}:{" "}
+                      {formatDatumVrijeme(
+                        povratna.rok_dorade,
+                        jezik,
+                      )}
+                    </p>
+                  )}
+
+                  <GumbLink
+                    href={`/moj/${kolegijId}/zadaci/${povratna.zadatak_id}`}
+                  >
+                    {td("openAssignment")}
+                  </GumbLink>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Kartica>
