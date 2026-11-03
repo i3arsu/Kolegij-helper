@@ -7,7 +7,12 @@ import {
   Oznaka,
 } from "@/components/ui";
 
-import type { StatusPredaje } from "@/lib/db/tipovi";
+import {
+  KLJUC_STATUSA,
+  TON_STATUSA,
+} from "@/lib/domena/statusi";
+
+import { formatBroj } from "@/lib/domena/broj";
 
 import {
   formatDatumDan,
@@ -16,26 +21,6 @@ import {
 
 import { upit } from "@/lib/auth/guard";
 import { zadaciStudenta } from "@/lib/servisi/zadaci-studenta";
-
-const statusi: Record<StatusPredaje, {
-  ton: "neutralno" | "uspjeh" | "upozorenje" | "greska";
-}> = {
-  nije_predano: {
-    ton: "neutralno",
-  },
-  predano: {
-    ton: "neutralno",
-  },
-  u_pregledu: {
-    ton: "upozorenje",
-  },
-  vraceno_na_doradu: {
-    ton: "upozorenje",
-  },
-  prihvaceno: {
-    ton: "uspjeh",
-  },
-};
 
 export default async function ZadaciStudenta({
   params,
@@ -55,19 +40,7 @@ export default async function ZadaciStudenta({
     ),
   );
 
-  const naziviStatusa: Record<StatusPredaje, string> = {
-        nije_predano: t("statuses.nije_predano"),
-        predano: t("statuses.predano"),
-        u_pregledu: t("statuses.u_pregledu"),
-        vraceno_na_doradu: t("statuses.vraceno_na_doradu"),
-        prihvaceno: t("statuses.prihvaceno"),
-    };
-
-  const formatBroj = (vrijednost: string | number) =>
-    new Intl.NumberFormat(
-      locale === "en" ? "en" : "hr",
-      { maximumFractionDigits: 2 },
-    ).format(Number(vrijednost));
+  const jezik = locale === "en" ? "en" : "hr";
 
   return (
     <>
@@ -83,8 +56,6 @@ export default async function ZadaciStudenta({
         <ul className="grid gap-3">
           {zadaci.map((zadatak) => {
             const status = zadatak.status ?? "nije_predano";
-            const opisStatusa = statusi[status];
-
             const rok = zadatak.rok_efektivni;
 
             return (
@@ -99,12 +70,12 @@ export default async function ZadaciStudenta({
                     </h2>
 
                     <div className="flex flex-wrap gap-2">
-                      <Oznaka ton={opisStatusa.ton}>
-                        {naziviStatusa[status]}
+                      <Oznaka ton={TON_STATUSA[status]}>
+                        {t(KLJUC_STATUSA[status])}
                       </Oznaka>
 
                       {zadatak.kasni && (
-                        <Oznaka ton="greska">
+                        <Oznaka ton="upozorenje">
                           {t("late")}
                         </Oznaka>
                       )}
@@ -122,7 +93,7 @@ export default async function ZadaciStudenta({
                     <p>
                       {t("deadline")}:{" "}
                       {rok
-                        ? `${formatDatumDan(rok, locale === "en" ? "en" : "hr")} ${formatVrijeme(rok)}`
+                        ? `${formatDatumDan(rok, jezik)} ${formatVrijeme(rok)}`
                         : "—"}
                     </p>
 
@@ -130,9 +101,9 @@ export default async function ZadaciStudenta({
                       {t("points")}:{" "}
                       {zadatak.bodovi === null
                         ? "—"
-                        : formatBroj(zadatak.bodovi)}
+                        : formatBroj(zadatak.bodovi, locale)}
                       {" / "}
-                      {formatBroj(zadatak.max_bodova)}
+                      {formatBroj(zadatak.max_bodova, locale)}
                     </p>
                   </div>
                 </Link>

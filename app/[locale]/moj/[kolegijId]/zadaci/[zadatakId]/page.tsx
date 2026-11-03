@@ -11,8 +11,15 @@ import {
 } from "@/components/ui";
 
 import { formatDatumVrijeme } from "@/lib/domena/vrijeme";
+import { formatBroj } from "@/lib/domena/broj";
+
+import {
+  mozeStudentPredati,
+  TON_STATUSA,
+  KLJUC_STATUSA,
+} from "@/lib/domena/statusi";
+
 import { upit } from "@/lib/auth/guard";
-import { mozeStudentPredati } from "@/lib/domena/statusi";
 import type { StatusPredaje } from "@/lib/db/tipovi";
 
 import {
@@ -21,19 +28,6 @@ import {
 } from "@/lib/servisi/zadaci-studenta";
 
 import { FormaPredaje } from "./forma-predaje";
-
-const statusi: Record<
-  StatusPredaje,
-  {
-    ton: "neutralno" | "uspjeh" | "upozorenje" | "greska";
-  }
-> = {
-  nije_predano: { ton: "neutralno" },
-  predano: { ton: "neutralno" },
-  u_pregledu: { ton: "upozorenje" },
-  vraceno_na_doradu: { ton: "upozorenje" },
-  prihvaceno: { ton: "uspjeh" },
-};
 
 function formatVelicina(velicina: number | string | bigint) {
   const bajtovi = Number(velicina);
@@ -95,14 +89,6 @@ export default async function DetaljiZadatkaStudenta({
 
   const status: StatusPredaje =
     zadatak.status ?? "nije_predano";
-
-  const nazivStatusa: Record<StatusPredaje, string> = {
-    nije_predano: t("statuses.nije_predano"),
-    predano: t("statuses.predano"),
-    u_pregledu: t("statuses.u_pregledu"),
-    vraceno_na_doradu: t("statuses.vraceno_na_doradu"),
-    prihvaceno: t("statuses.prihvaceno"),
-  };
 
   const zadnjaVerzija = povijest[povijest.length - 1];
 
@@ -174,8 +160,8 @@ export default async function DetaljiZadatkaStudenta({
       <Kartica naslov={t("detailsTitle")}>
         <div className="space-y-4">
           <div>
-            <Oznaka ton={statusi[status].ton}>
-              {nazivStatusa[status]}
+            <Oznaka ton={TON_STATUSA[status]}>
+              {t(KLJUC_STATUSA[status])}
             </Oznaka>
 
             {zadatak.kasni && (
@@ -229,7 +215,7 @@ export default async function DetaljiZadatkaStudenta({
               </dt>
 
               <dd className="mt-1">
-                {Number(zadatak.max_bodova)}
+                {formatBroj(zadatak.max_bodova, locale)}
               </dd>
             </div>
 
@@ -240,8 +226,9 @@ export default async function DetaljiZadatkaStudenta({
                 </dt>
 
                 <dd className="mt-1">
-                  {Number(zadatak.bodovi)} /{" "}
-                  {Number(zadatak.max_bodova)}
+                  {formatBroj(zadatak.bodovi, locale)}
+                  {" / "}
+                  {formatBroj(zadatak.max_bodova, locale)}
                 </dd>
               </div>
             )}
@@ -258,7 +245,7 @@ export default async function DetaljiZadatkaStudenta({
           </dl>
 
           {rokProsao && (
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-upozorenje">
               {t("deadlinePassed")}
             </p>
           )}
@@ -268,7 +255,7 @@ export default async function DetaljiZadatkaStudenta({
       {/* Materijali priloženi zadatku */}
       <Kartica naslov={t("taskFiles")}>
         {zadatak.prilozi.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-tekst-slab">
             {t("noFiles")}
           </p>
         ) : (
@@ -283,14 +270,14 @@ export default async function DetaljiZadatkaStudenta({
                     {prilog.naziv}
                   </p>
 
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-tekst-slab">
                     {formatVelicina(prilog.velicina)}
                   </p>
                 </div>
 
                 <a
                   href={`/api/datoteke/${prilog.id}?locale=${encodeURIComponent(locale)}`}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-naglasak hover:underline"
                 >
                   {t("download")}
                 </a>
@@ -303,6 +290,7 @@ export default async function DetaljiZadatkaStudenta({
       {/* Slanje ili zamjena predaje */}
       {mozePredati && (
         <FormaPredaje
+          key={`${zadatak.trenutna_verzija}-${zadnjaVerzija?.predano_at?.getTime() ?? "bez-datuma"}`}
           zadatakId={zadatakId}
           locale={locale}
           naciniPredaje={zadatak.nacini_predaje}
@@ -339,7 +327,7 @@ export default async function DetaljiZadatkaStudenta({
       {!mozePredati &&
         mozeStudentPredati(status) && (
           <Kartica naslov={t("submissionStatus")}>
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-upozorenje">
               {t("submissionClosed")}
             </p>
           </Kartica>
@@ -348,7 +336,7 @@ export default async function DetaljiZadatkaStudenta({
       {/* Povijest predaja */}
       <Kartica naslov={t("historyTitle")}>
         {povijest.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-tekst-slab">
             {t("noHistory")}
           </p>
         ) : (
@@ -364,15 +352,17 @@ export default async function DetaljiZadatkaStudenta({
               return (
                 <div
                   key={verzija.verzija_id}
-                  className="space-y-3 border-b border-gray-200 pb-5 last:border-0 last:pb-0"
+                  className="space-y-3 border-b border-rub pb-5 last:border-0 last:pb-0"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="font-semibold">
                       {t("version")} {verzija.broj}
                     </h3>
 
-                    <span className="text-sm text-gray-500">
-                        {verzija.predano_at ? formatDatumVrijeme(verzija.predano_at, jezik) : "—"}
+                    <span className="text-sm text-tekst-slab">
+                      {verzija.predano_at
+                        ? formatDatumVrijeme(verzija.predano_at, jezik)
+                        : "—"}
                     </span>
                   </div>
 
@@ -404,7 +394,7 @@ export default async function DetaljiZadatkaStudenta({
                         href={verzija.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-1 block break-all text-sm text-blue-600 hover:underline"
+                        className="mt-1 block break-all text-sm text-naglasak hover:underline"
                       >
                         {verzija.link}
                       </a>
@@ -422,12 +412,12 @@ export default async function DetaljiZadatkaStudenta({
                           <li key={datoteka.id}>
                             <a
                               href={`/api/datoteke/${datoteka.id}?locale=${encodeURIComponent(locale)}`}
-                              className="text-sm text-blue-600 hover:underline"
+                              className="text-sm text-naglasak hover:underline"
                             >
                               {datoteka.naziv}
                             </a>
 
-                            <span className="ml-2 text-xs text-gray-500">
+                            <span className="ml-2 text-xs text-tekst-slab">
                               {formatVelicina(datoteka.velicina)}
                             </span>
                           </li>
@@ -437,7 +427,7 @@ export default async function DetaljiZadatkaStudenta({
                   )}
 
                   {odluka && (
-                    <div className="space-y-2 rounded-lg bg-gray-50 p-4">
+                    <div className="space-y-2 rounded-lg border border-rub bg-pozadina p-4">
                       <h4 className="font-medium">
                         {t("feedbackTitle")}
                       </h4>
@@ -460,12 +450,13 @@ export default async function DetaljiZadatkaStudenta({
 
                       {verzija.bodovi !== null && (
                         <p className="text-sm">
-                          {t("points")}: {Number(verzija.bodovi)}
+                          {t("points")}:{" "}
+                          {formatBroj(verzija.bodovi, locale)}
                         </p>
                       )}
 
                       {verzija.rok_dorade && (
-                        <p className="text-sm">
+                        <p className="text-sm text-upozorenje">
                           {t("revisionDeadline")}:{" "}
                           {formatDatumVrijeme(
                             verzija.rok_dorade,

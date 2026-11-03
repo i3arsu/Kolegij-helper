@@ -754,6 +754,8 @@
     "returned": "Vraćeno na doradu",
     "version": "Verzija",
     "points": "Bodovi",
-    "revisionDeadline": "Rok za doradu"
+    "revisionDeadline": "Rok za doradu",
+    "late": "Zakašnjelo",
+    "noDeadline": "Nije određen rok"
   }
 }

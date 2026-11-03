@@ -2,8 +2,21 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+
+import {
+  Gumb,
+  Kartica,
+  Polje,
+  Poruka,
+} from "@/components/ui";
+
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+
+import {
+  MAX_BROJ_DATOTEKA,
+  MAX_VELICINA_DATOTEKE,
+} from "@/lib/datoteke/ogranicenja";
 
 type VrstaPredaje = "prva" | "zamjena" | "dorada";
 
@@ -15,9 +28,6 @@ type Props = {
   pocetniTekst?: string | null;
   pocetnaPoveznica?: string | null;
 };
-
-const MAX_DATOTEKA = 5;
-const MAX_VELICINA = 20 * 1024 * 1024;
 
 export function FormaPredaje({
   zadatakId,
@@ -55,16 +65,20 @@ export function FormaPredaje({
         .getAll("datoteke")
         .filter(
           (vrijednost): vrijednost is File =>
-            vrijednost instanceof File && vrijednost.size > 0
+            vrijednost instanceof File && vrijednost.size > 0,
         );
 
-      // Validacija broja datoteka.
-      if (datoteke.length > MAX_DATOTEKA) {
+      // Provjeravamo broj datoteka.
+      if (datoteke.length > MAX_BROJ_DATOTEKA) {
         throw new Error(t("form.tooManyFiles"));
       }
 
-      // Validacija veličine pojedinačne datoteke.
-      if (datoteke.some((datoteka) => datoteka.size > MAX_VELICINA)) {
+      // Provjeravamo veličinu pojedinačne datoteke.
+      if (
+        datoteke.some(
+          (datoteka) => datoteka.size > MAX_VELICINA_DATOTEKE,
+        )
+      ) {
         throw new Error(t("form.fileTooLarge"));
       }
 
@@ -113,14 +127,11 @@ export function FormaPredaje({
       // Predaja je uspješno spremljena.
       setUspjeh(t("form.success"));
 
-      // Koristimo spremljenu referencu, a ne event.currentTarget.
-      formular.reset();
-
       // Osvježavamo podatke stranice.
       router.refresh();
     } catch (error) {
       setGreska(
-        error instanceof Error ? error.message : t("form.error")
+        error instanceof Error ? error.message : t("form.error"),
       );
     } finally {
       setSalje(false);
@@ -142,13 +153,14 @@ export function FormaPredaje({
         : t("form.submitRevision");
 
   return (
-    <section className="space-y-4 rounded-xl border border-gray-200 p-5">
-      <h2 className="text-lg font-semibold">{naslov}</h2>
-
+    <Kartica naslov={naslov}>
       <form onSubmit={obradiPredaju} className="space-y-4">
         {naciniPredaje.includes("tekst") && (
           <div className="space-y-2">
-            <label htmlFor="tekst" className="block text-sm font-medium">
+            <label
+              htmlFor="tekst"
+              className="block text-sm font-medium"
+            >
               {t("form.text")}
             </label>
 
@@ -158,31 +170,28 @@ export function FormaPredaje({
               rows={6}
               maxLength={20000}
               defaultValue={pocetniTekst ?? ""}
-              className="w-full rounded-lg border border-gray-300 p-3"
+              className="w-full rounded-md border border-rub bg-povrsina px-3 py-2"
             />
           </div>
         )}
 
         {naciniPredaje.includes("link") && (
-          <div className="space-y-2">
-            <label htmlFor="link" className="block text-sm font-medium">
-              {t("form.link")}
-            </label>
-
-            <input
-              id="link"
-              name="link"
-              type="url"
-              defaultValue={pocetnaPoveznica ?? ""}
-              placeholder="https://..."
-              className="w-full rounded-lg border border-gray-300 p-3"
-            />
-          </div>
+          <Polje
+            id="link"
+            name="link"
+            type="url"
+            oznaka={t("form.link")}
+            defaultValue={pocetnaPoveznica ?? ""}
+            placeholder="https://..."
+          />
         )}
 
         {naciniPredaje.includes("datoteka") && (
           <div className="space-y-2">
-            <label htmlFor="datoteke" className="block text-sm font-medium">
+            <label
+              htmlFor="datoteke"
+              className="block text-sm font-medium"
+            >
               {t("form.files")}
             </label>
 
@@ -191,41 +200,41 @@ export function FormaPredaje({
               name="datoteke"
               type="file"
               multiple
-              className="block w-full text-sm"
+              className="block w-full text-sm text-tekst-slab file:mr-3 file:rounded-md file:border file:border-rub file:bg-povrsina file:px-3 file:py-2 file:text-tekst"
             />
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-tekst-slab">
               {t("form.filesHelp")}
             </p>
           </div>
         )}
 
         {vrsta === "zamjena" && (
-          <p className="text-sm text-amber-700">
+          <Poruka vrsta="upozorenje">
             {t("form.replaceFilesNote")}
-          </p>
+          </Poruka>
         )}
 
         {greska && (
-          <p role="alert" className="text-sm text-red-600">
+          <Poruka vrsta="greska">
             {greska}
-          </p>
+          </Poruka>
         )}
 
         {uspjeh && (
-          <p role="status" className="text-sm text-green-700">
+          <Poruka vrsta="uspjeh">
             {uspjeh}
-          </p>
+          </Poruka>
         )}
 
-        <button
+        <Gumb
           type="submit"
           disabled={salje}
-          className="rounded-lg bg-blue-600 px-5 py-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          varijanta="primarni"
         >
           {salje ? t("form.sending") : gumb}
-        </button>
+        </Gumb>
       </form>
-    </section>
+    </Kartica>
   );
 }

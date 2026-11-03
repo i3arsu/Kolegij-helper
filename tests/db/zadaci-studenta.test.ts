@@ -286,12 +286,13 @@ describe("sljedeciRokoviStudenta", () => {
     "ne prikazuje zadatke kojima je rok istekao",
     async () => {
       await o.vlasnik
-        .updateTable("zadatak")
-        .set({
-          rok: new Date("2020-01-01T00:00:00.000Z"),
-        })
-        .where("id", "=", z.Z.cijeliKolegij)
-        .execute();
+      .updateTable("zadatak")
+      .set({
+        rok: new Date("2020-01-01T00:00:00.000Z"),
+        dopusti_kasnu_predaju: false,
+      })
+      .where("id", "=", z.Z.cijeliKolegij)
+      .execute();
 
       const redovi = await o.kao(
         s.S1.korisnik,
@@ -363,6 +364,83 @@ describe("sljedeciRokoviStudenta", () => {
             );
         },
     );
+
+    it(
+  "prikazuje zadatke s isteklim rokom kada je kasna predaja dopuštena",
+  async () => {
+    await o.vlasnik
+      .updateTable("zadatak")
+      .set({
+        rok: new Date("2020-01-01T00:00:00.000Z"),
+        dopusti_kasnu_predaju: true,
+      })
+      .where("id", "=", z.Z.cijeliKolegij)
+      .execute();
+
+    const redovi = await o.kao(
+      s.S1.korisnik,
+      (tx) =>
+        sljedeciRokoviStudenta(tx, s.K1, s.S1.student),
+    );
+
+    const zadatak = redovi.find(
+      (red) => red.zadatak_id === z.Z.cijeliKolegij,
+    );
+
+    expect(zadatak).toBeDefined();
+    expect(zadatak?.rok_prosao).toBe(true);
+    expect(zadatak?.status).toBe("nije_predano");
+  },
+);
+
+  it(
+    "prikazuje vraćeni zadatak bez roka dorade",
+    async () => {
+      const zadatakId = z.Z.cijeliKolegij;
+
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({
+          nacini_predaje: ["tekst"],
+        })
+        .where("id", "=", zadatakId)
+        .execute();
+
+      const predaja = await predaj(
+        s.S1.korisnik,
+        zadatakId,
+        "Prva verzija rada",
+      );
+
+      await ocijeni(
+        s.N.korisnik,
+        predaja.predaja_id,
+        "vraceno_na_doradu",
+        "Potrebne su dodatne izmjene.",
+        null,
+        null,
+      );
+
+      const redovi = await o.kao(
+        s.S1.korisnik,
+        (tx) =>
+          sljedeciRokoviStudenta(
+            tx,
+            s.K1,
+            s.S1.student,
+          ),
+      );
+
+      const zadatak = redovi.find(
+        (red) => red.zadatak_id === zadatakId,
+      );
+
+      expect(zadatak).toBeDefined();
+      expect(zadatak?.status).toBe("vraceno_na_doradu");
+      expect(zadatak?.rok_za_predaju).toBeNull();
+      expect(zadatak?.rok_prosao).toBe(false);
+    },
+  );
 });
 
 describe("zadnjePovratneInformacije", () => {

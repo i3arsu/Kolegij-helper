@@ -146,7 +146,7 @@ export default async function MojPregled({
             {rokovi.map((rok) => (
               <li
                 key={rok.zadatak_id}
-                className="space-y-2 border-b border-gray-200 pb-3 last:border-0 last:pb-0"
+                className="space-y-2 border-b border-rub pb-3 last:border-0 last:pb-0"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -157,11 +157,14 @@ export default async function MojPregled({
                     {rok.rok_za_predaju && (
                       <p className="mt-1 text-sm text-tekst-slab">
                         {td("deadline")}:{" "}
-                        {formatDatumVrijeme(
-                          rok.rok_za_predaju,
-                          jezik,
-                        )}
+                        {rok.rok_za_predaju ? formatDatumVrijeme(rok.rok_za_predaju, jezik) : td("noDeadline")}
                       </p>
+                    )}
+
+                    {rok.rok_prosao && (
+                      <Oznaka ton="upozorenje">
+                        {td("late")}
+                      </Oznaka>
                     )}
                   </div>
 
@@ -204,7 +207,7 @@ export default async function MojPregled({
               return (
                 <li
                   key={`${povratna.zadatak_id}-${povratna.verzija}-${index}`}
-                  className="space-y-2 border-b border-gray-200 pb-3 last:border-0 last:pb-0"
+                  className="space-y-2 border-b border-rub pb-3 last:border-0 last:pb-0"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-medium">
@@ -242,7 +245,7 @@ export default async function MojPregled({
                   )}
 
                   {povratna.rok_dorade && (
-                    <p className="text-sm text-amber-700">
+                    <p className="text-sm text-upozorenje">
                       {td("revisionDeadline")}:{" "}
                       {formatDatumVrijeme(
                         povratna.rok_dorade,

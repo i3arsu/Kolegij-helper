@@ -3,6 +3,20 @@ import { priloziZadatka } from "@/lib/servisi/prilozi-zadatka";
 import { sql } from "kysely";
 
 /**
+ * Rok koji vrijedi za sljedeću predaju.
+ * Za doradu koristi rok iz povratne informacije nastavnika.
+ */
+function rokZaPredajuSql() {
+  return sql<Date | null>`
+    CASE
+      WHEN vp.status = 'vraceno_na_doradu'
+        THEN pi.rok_dorade
+      ELSE vp.rok
+    END
+  `;
+}
+
+/**
  * Zadaci dostupni studentu na kolegiju.
  * V_predaja osigurava da se prikazuju samo dodijeljeni zadaci.
  */
@@ -11,9 +25,21 @@ export async function zadaciStudenta(
   kolegijId: string,
   studentId: string,
 ) {
+  const rok = rokZaPredajuSql();
+
   return tx
     .selectFrom("v_predaja as vp")
     .innerJoin("zadatak as z", "z.id", "vp.zadatak_id")
+    .leftJoin("v_predaja_verzija as vv", (join) =>
+      join
+        .onRef("vv.predaja_id", "=", "vp.predaja_id")
+        .onRef("vv.broj", "=", "vp.trenutna_verzija"),
+    )
+    .leftJoin("povratna_informacija as pi", (join) =>
+      join
+        .onRef("pi.predaja_id", "=", "vv.predaja_id")
+        .onRef("pi.verzija_broj", "=", "vv.broj"),
+    )
     .select([
       "z.id",
       "z.naslov",
@@ -25,15 +51,17 @@ export async function zadaciStudenta(
       "vp.status",
       "vp.bodovi",
       "vp.predano_at",
-      "vp.rok as rok_efektivni",
-      "vp.rok_prosao",
+      rok.as("rok_efektivni"),
+      sql<boolean>`
+        coalesce(now() > ${rok}, false)
+      `.as("rok_prosao"),
       "vp.kasni",
       "vp.trenutna_verzija",
     ])
     .where("vp.kolegij_id", "=", kolegijId)
     .where("vp.student_id", "=", studentId)
     .where("z.objavljen_at", "is not", null)
-    .orderBy("vp.rok", "asc")
+    .orderBy(rok, "asc")
     .execute();
 }
 
@@ -43,18 +71,17 @@ export async function zadaciStudenta(
  * Uključuje nepredane zadatke i zadatke vraćene na doradu.
  * Za doradu se koristi rok iz povratne informacije nastavnika.
  */
+/**
+ * Sljedeći rokovi za predaju zadataka.
+ * Uključuje zakašnjele predaje koje su još dopuštene
+ * i dorade bez postavljenog roka.
+ */
 export async function sljedeciRokoviStudenta(
   tx: Tx,
   kolegijId: string,
   studentId: string,
 ) {
-  const rokZaPredaju = sql<Date | null>`
-    CASE
-      WHEN vp.status = 'vraceno_na_doradu'
-        THEN pi.rok_dorade
-      ELSE vp.rok
-    END
-  `;
+  const rok = rokZaPredajuSql();
 
   return tx
     .selectFrom("v_predaja as vp")
@@ -73,7 +100,10 @@ export async function sljedeciRokoviStudenta(
       "z.id as zadatak_id",
       "z.naslov",
       "vp.status",
-      rokZaPredaju.as("rok_za_predaju"),
+      rok.as("rok_za_predaju"),
+      sql<boolean>`
+        coalesce(now() > ${rok}, false)
+      `.as("rok_prosao"),
     ])
     .where("vp.kolegij_id", "=", kolegijId)
     .where("vp.student_id", "=", studentId)
@@ -82,8 +112,14 @@ export async function sljedeciRokoviStudenta(
       "nije_predano",
       "vraceno_na_doradu",
     ])
-    .where(sql<boolean>`${rokZaPredaju} > now()`)
-    .orderBy(rokZaPredaju, "asc")
+    .where(sql<boolean>`
+      (
+        ${rok} IS NULL
+        OR ${rok} > now()
+        OR z.dopusti_kasnu_predaju = true
+      )
+    `)
+    .orderBy(rok, "asc")
     .limit(5)
     .execute();
 }

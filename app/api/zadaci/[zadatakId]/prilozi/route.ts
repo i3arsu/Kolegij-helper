@@ -12,11 +12,16 @@ import {
   porukaGreske,
 } from "@/lib/http/greske";
 import type { Prevoditelj } from "@/lib/i18n/prevoditelj";
+
 import {
   GreskaProvjereDatoteke,
-  MAX_VELICINA_DATOTEKE,
   provjeriDatoteku,
 } from "@/lib/datoteke/provjera";
+
+import {
+  MAX_VELICINA_DATOTEKE,
+} from "@/lib/datoteke/ogranicenja";
+
 import {
   obrisi,
   spremi,

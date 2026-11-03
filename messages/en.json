@@ -754,6 +754,8 @@
     "returned": "Returned for revision",
     "version": "Version",
     "points": "Points",
-    "revisionDeadline": "Revision deadline"
+    "revisionDeadline": "Revision deadline",
+    "late": "Overdue",
+    "noDeadline": "No deadline"
   }
 }
