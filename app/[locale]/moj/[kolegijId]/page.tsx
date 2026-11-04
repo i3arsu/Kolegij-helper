@@ -154,12 +154,10 @@ export default async function MojPregled({
                       {rok.naslov}
                     </p>
 
-                    {rok.rok_za_predaju && (
-                      <p className="mt-1 text-sm text-tekst-slab">
-                        {td("deadline")}:{" "}
-                        {rok.rok_za_predaju ? formatDatumVrijeme(rok.rok_za_predaju, jezik) : td("noDeadline")}
-                      </p>
-                    )}
+                    <p className="mt-1 text-sm text-tekst-slab">
+                      {td("deadline")}:{" "}
+                      {rok.rok_za_predaju ? formatDatumVrijeme(rok.rok_za_predaju, jezik) : td("noDeadline")}
+                    </p>
 
                     {rok.rok_prosao && (
                       <Oznaka ton="upozorenje">

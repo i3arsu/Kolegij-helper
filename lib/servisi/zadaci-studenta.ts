@@ -1,24 +1,28 @@
+import { sql } from "kysely";
+
 import type { Tx } from "@/lib/db/klijent";
 import { priloziZadatka } from "@/lib/servisi/prilozi-zadatka";
-import { sql } from "kysely";
 
 /**
  * Rok koji vrijedi za sljedeću predaju.
- * Za doradu koristi rok iz povratne informacije nastavnika.
+ * Za doradu koristi rok prethodne povratne informacije.
+ * Za predanu novu verziju koristi rok po kojem je predana.
  */
 function rokZaPredajuSql() {
   return sql<Date | null>`
     CASE
       WHEN vp.status = 'vraceno_na_doradu'
         THEN pi.rok_dorade
+      WHEN vp.status = 'predano'
+        THEN coalesce(vv.rok_verzije, vp.rok)
       ELSE vp.rok
     END
   `;
 }
 
 /**
- * Zadaci dostupni studentu na kolegiju.
- * V_predaja osigurava da se prikazuju samo dodijeljeni zadaci.
+ * Dohvaća objavljene zadatke dodijeljene studentu.
+ * V_predaja osigurava da student vidi samo zadatke kojima ima pristup.
  */
 export async function zadaciStudenta(
   tx: Tx,
@@ -65,16 +69,10 @@ export async function zadaciStudenta(
     .execute();
 }
 
-
 /**
- * Sljedeći rokovi za predaju zadataka.
- * Uključuje nepredane zadatke i zadatke vraćene na doradu.
- * Za doradu se koristi rok iz povratne informacije nastavnika.
- */
-/**
- * Sljedeći rokovi za predaju zadataka.
- * Uključuje zakašnjele predaje koje su još dopuštene
- * i dorade bez postavljenog roka.
+ * Dohvaća sljedeće rokove za predaju zadataka.
+ * Budući rokovi imaju prednost pred zakašnjelim predajama
+ * i zadacima vraćenima na doradu bez određenog roka.
  */
 export async function sljedeciRokoviStudenta(
   tx: Tx,
@@ -119,15 +117,25 @@ export async function sljedeciRokoviStudenta(
         OR z.dopusti_kasnu_predaju = true
       )
     `)
+    // Prvo budući rokovi, zatim zakašnjeli, na kraju rokovi bez datuma.
+    .orderBy(
+      sql<number>`
+        CASE
+          WHEN ${rok} IS NULL THEN 2
+          WHEN ${rok} < now() THEN 1
+          ELSE 0
+        END
+      `,
+      "asc",
+    )
     .orderBy(rok, "asc")
     .limit(5)
     .execute();
 }
 
-
 /**
- * Últimas povratne informacije nastavnika za studenta.
- * Prikazuje najnovije komentare i ocjene svih predanih verzija.
+ * Dohvaća zadnje povratne informacije nastavnika za studenta.
+ * Prikazuje odluke, komentare, bodove i rokove dorade.
  */
 export async function zadnjePovratneInformacije(
   tx: Tx,
@@ -137,7 +145,11 @@ export async function zadnjePovratneInformacije(
   return tx
     .selectFrom("v_predaja as vp")
     .innerJoin("zadatak as z", "z.id", "vp.zadatak_id")
-    .innerJoin("v_predaja_verzija as vv", "vv.predaja_id", "vp.predaja_id")
+    .innerJoin(
+      "v_predaja_verzija as vv",
+      "vv.predaja_id",
+      "vp.predaja_id",
+    )
     .innerJoin("povratna_informacija as pi", (join) =>
       join
         .onRef("pi.predaja_id", "=", "vv.predaja_id")
@@ -162,7 +174,7 @@ export async function zadnjePovratneInformacije(
 }
 
 /**
- * Detalji zadatka i prilozi dostupni studentu.
+ * Dohvaća detalje zadatka i njegove priloge dostupne studentu.
  */
 export async function zadatakStudenta(
   tx: Tx,
@@ -209,8 +221,8 @@ export async function zadatakStudenta(
 }
 
 /**
- * Povijest svih predanih verzija s povratnim informacijama
- * i datotekama pojedine verzije.
+ * Dohvaća povijest svih predanih verzija,
+ * povratne informacije i datoteke pojedine verzije.
  */
 export async function povijestPredaje(
   tx: Tx,
@@ -238,27 +250,24 @@ export async function povijestPredaje(
         .onRef("pi.verzija_broj", "=", "vv.broj"),
     )
     .select([
-        "vv.verzija_id",
-        "vv.broj",
-        "vv.tekst",
-        "vv.link",
-        "vv.predano_at",
-        "vv.rok_verzije",
-        "vv.kasni",
-
-    sql<boolean>`
+      "vv.verzija_id",
+      "vv.broj",
+      "vv.tekst",
+      "vv.link",
+      "vv.predano_at",
+      "vv.rok_verzije",
+      "vv.kasni",
+      sql<boolean>`
         coalesce(now() > vv.rok_verzije, false)
-        `.as("rok_verzije_prosao"),
-
-        "pi.odluka",
-        "pi.komentar",
-        "pi.bodovi",
-        "pi.rok_dorade",
-        "pi.created_at as povratna_at",
-
-        sql<boolean>`
+      `.as("rok_verzije_prosao"),
+      "pi.odluka",
+      "pi.komentar",
+      "pi.bodovi",
+      "pi.rok_dorade",
+      "pi.created_at as povratna_at",
+      sql<boolean>`
         coalesce(now() > pi.rok_dorade, false)
-        `.as("rok_dorade_prosao"),
+      `.as("rok_dorade_prosao"),
     ])
     .where("vv.predaja_id", "=", predaja.predaja_id)
     .orderBy("vv.broj", "asc")

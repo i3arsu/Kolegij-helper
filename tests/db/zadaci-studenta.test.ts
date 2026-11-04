@@ -223,6 +223,67 @@ describe("zadaciStudenta", () => {
       redoviS2.some((r) => r.id === zadatak.id),
     ).toBe(false);
   });
+
+  it(
+    "koristi rok dorade za predanu novu verziju zadatka",
+    async () => {
+      const zadatakId = z.Z.cijeliKolegij;
+
+      // Omogućujemo predaju teksta.
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({ nacini_predaje: ["tekst"] })
+        .where("id", "=", zadatakId)
+        .execute();
+
+      // Student predaje prvu verziju.
+      const prva = await predaj(
+        s.S1.korisnik,
+        zadatakId,
+        "Prva verzija rada",
+      );
+
+      // Nastavnik vraća zadatak na doradu s novim rokom.
+      const rokDorade = new Date(
+        Date.now() + 30 * 24 * 60 * 60 * 1000,
+      );
+
+      await ocijeni(
+        s.N.korisnik,
+        prva.predaja_id,
+        "vraceno_na_doradu",
+        "Potrebne su dodatne izmjene.",
+        null,
+        rokDorade,
+      );
+
+      // Student predaje drugu verziju.
+      const druga = await predaj(
+        s.S1.korisnik,
+        zadatakId,
+        "Druga verzija rada",
+      );
+
+      expect(druga.verzija).toBe(2);
+
+      // Provjeravamo rok koji prikazuje studentski popis zadataka.
+      const redovi = await o.kao(
+        s.S1.korisnik,
+        (tx) => zadaciStudenta(tx, s.K1, s.S1.student),
+      );
+
+      const zadatak = redovi.find(
+        (red) => red.id === zadatakId,
+      );
+
+      expect(zadatak).toBeDefined();
+      expect(zadatak?.status).toBe("predano");
+      expect(zadatak?.rok_efektivni?.getTime()).toBe(
+        rokDorade.getTime(),
+      );
+      expect(zadatak?.rok_prosao).toBe(false);
+    },
+  );
 });
 
 describe("sljedeciRokoviStudenta", () => {
@@ -367,31 +428,31 @@ describe("sljedeciRokoviStudenta", () => {
 
     it(
   "prikazuje zadatke s isteklim rokom kada je kasna predaja dopuštena",
-  async () => {
-    await o.vlasnik
-      .updateTable("zadatak")
-      .set({
-        rok: new Date("2020-01-01T00:00:00.000Z"),
-        dopusti_kasnu_predaju: true,
-      })
-      .where("id", "=", z.Z.cijeliKolegij)
-      .execute();
+    async () => {
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({
+          rok: new Date("2020-01-01T00:00:00.000Z"),
+          dopusti_kasnu_predaju: true,
+        })
+        .where("id", "=", z.Z.cijeliKolegij)
+        .execute();
 
-    const redovi = await o.kao(
-      s.S1.korisnik,
-      (tx) =>
-        sljedeciRokoviStudenta(tx, s.K1, s.S1.student),
-    );
+      const redovi = await o.kao(
+        s.S1.korisnik,
+        (tx) =>
+          sljedeciRokoviStudenta(tx, s.K1, s.S1.student),
+      );
 
-    const zadatak = redovi.find(
-      (red) => red.zadatak_id === z.Z.cijeliKolegij,
-    );
+      const zadatak = redovi.find(
+        (red) => red.zadatak_id === z.Z.cijeliKolegij,
+      );
 
-    expect(zadatak).toBeDefined();
-    expect(zadatak?.rok_prosao).toBe(true);
-    expect(zadatak?.status).toBe("nije_predano");
-  },
-);
+      expect(zadatak).toBeDefined();
+      expect(zadatak?.rok_prosao).toBe(true);
+      expect(zadatak?.status).toBe("nije_predano");
+    },
+  );
 
   it(
     "prikazuje vraćeni zadatak bez roka dorade",
@@ -441,6 +502,90 @@ describe("sljedeciRokoviStudenta", () => {
       expect(zadatak?.rok_prosao).toBe(false);
     },
   );
+
+  it(
+    "raspoređuje buduće rokove prije zakašnjelih, a zadatke bez roka na kraj",
+    async () => {
+      const dan = 24 * 60 * 60 * 1000;
+
+      const buduciRok = new Date(Date.now() + 30 * dan);
+      const istekliRok = new Date(Date.now() - 30 * dan);
+
+      // Postavljamo jedan budući rok.
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({ rok: buduciRok })
+        .where("id", "=", z.Z.samoV1)
+        .execute();
+
+      // Postavljamo jedan istekli rok s dopuštenom kasnom predajom.
+      await o.vlasnik
+        .updateTable("zadatak")
+        .set({
+          rok: istekliRok,
+          dopusti_kasnu_predaju: true,
+        })
+        .where("id", "=", z.Z.cijeliKolegij)
+        .execute();
+
+      // Stvaramo zadatak koji će biti vraćen bez roka dorade.
+      const zadatakBezRoka = await o.vlasnik
+        .insertInto("zadatak")
+        .values({
+          kolegij_id: s.K1,
+          naslov: "Zadatak vraćen bez roka",
+          opis: "",
+          rok: new Date(Date.now() + 365 * dan),
+          max_bodova: 10,
+          nacini_predaje: ["tekst"],
+          dopusti_kasnu_predaju: true,
+          za_cijeli_kolegij: true,
+          objavljen_at: new Date("2026-09-01T08:00:00.000Z"),
+          created_by: s.N.korisnik,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+
+      // Student predaje zadatak.
+      const predaja = await predaj(
+        s.S1.korisnik,
+        zadatakBezRoka.id,
+        "Prva verzija rada",
+      );
+
+      // Nastavnik ga vraća bez postavljanja novog roka.
+      await ocijeni(
+        s.N.korisnik,
+        predaja.predaja_id,
+        "vraceno_na_doradu",
+        "Potrebne su dodatne izmjene.",
+        null,
+        null,
+      );
+
+      // Dohvaćamo sve sljedeće rokove studenta.
+      const redovi = await o.kao(
+        s.S1.korisnik,
+        (tx) => sljedeciRokoviStudenta(tx, s.K1, s.S1.student),
+      );
+
+      // Budući rok prvo, zakašnjeli rok nakon njega i zadatak bez roka na kraju.
+      expect(
+        redovi.map((red) => red.zadatak_id),
+      ).toEqual([
+        z.Z.samoV1,
+        z.Z.cijeliKolegij,
+        zadatakBezRoka.id,
+      ]);
+
+      expect(
+        redovi.map((red) => red.rok_prosao),
+      ).toEqual([false, true, false]);
+
+      expect(redovi[2]?.rok_za_predaju).toBeNull();
+    },
+  );
+
 });
 
 describe("zadnjePovratneInformacije", () => {
