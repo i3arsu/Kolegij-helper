@@ -13,11 +13,17 @@ import {
   porukaGreske,
 } from "@/lib/http/greske";
 import type { Prevoditelj } from "@/lib/i18n/prevoditelj";
+
 import {
   GreskaProvjereDatoteke,
-  MAX_VELICINA_DATOTEKE,
   provjeriDatoteku,
 } from "@/lib/datoteke/provjera";
+
+import {
+  MAX_BROJ_DATOTEKA,
+  MAX_VELICINA_DATOTEKE,
+} from "@/lib/datoteke/ogranicenja";
+
 import {
   obrisi,
   spremi,
@@ -31,8 +37,6 @@ type RezultatPredaje = {
   verzija: number;
   uklonjene_putanje: string[];
 };
-
-const MAX_BROJ_DATOTEKA = 5;
 
 // Pet datoteka od 20 MiB i dodatnih 1 MiB za multipart podatke.
 const MAX_VELICINA_ZAHTJEVA =

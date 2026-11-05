@@ -3,8 +3,7 @@ import "server-only";
 
 import { extname } from "node:path";
 import { fileTypeFromBuffer } from "file-type";
-
-export const MAX_VELICINA_DATOTEKE = 20 * 1024 * 1024;
+import { MAX_VELICINA_DATOTEKE } from "@/lib/datoteke/ogranicenja";
 
 const EKSTENZIJE_TEKSTA = new Set([
   "txt",

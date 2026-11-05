@@ -13,6 +13,8 @@ export default async function MojKolegijLayout({
 
   await zahtijevajStudenta(kolegijId);
 
+  const nav = await getTranslations("courseNavigation");
+
   const k = await upit((tx) => kolegij(tx, kolegijId));
 
   if (!k) notFound();
@@ -28,6 +30,7 @@ export default async function MojKolegijLayout({
         stavke={[
           { put: "", naziv: t("overviewTab") },
           { put: "dolaznost", naziv: t("attendanceTab") },
+          { put: "zadaci", naziv: nav("assignments") },
         ]}
       />
 

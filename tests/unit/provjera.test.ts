@@ -2,10 +2,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  MAX_VELICINA_DATOTEKE,
+  GreskaProvjereDatoteke,
+  DatotekaZaProvjeru,
   provjeriDatoteku,
-  type DatotekaZaProvjeru,
 } from "@/lib/datoteke/provjera";
+
+import {
+  MAX_VELICINA_DATOTEKE,
+} from "@/lib/datoteke/ogranicenja";
 
 function napraviDatoteku(
   name: string,
