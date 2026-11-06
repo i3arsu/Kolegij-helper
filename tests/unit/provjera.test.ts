@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  GreskaProvjereDatoteke,
   DatotekaZaProvjeru,
   provjeriDatoteku,
 } from "@/lib/datoteke/provjera";

@@ -173,7 +173,7 @@ async function ponovnoOtvori(
 async function stanjePredaje(predajaId: string) {
   return o.vlasnik
     .selectFrom("predaja")
-    .select(["status", "trenutna_verzija", "bodovi"])
+    .select(["status", "trenutna_verzija", "bodovi", "pregledava"])
     .where("id", "=", predajaId)
     .executeTakeFirstOrThrow();
 }
@@ -236,26 +236,53 @@ describe("predaja i verzije", () => {
     );
   });
 
-  it("omogućuje nastavniku ili asistentu preuzimanje i otpuštanje pregleda", async () => {
+  it("omogućuje preuzimanje i otpuštanje pregleda samo osobi koja ga je preuzela", async () => {
     const zadatakId = await noviZadatak();
+
     const prva = await predaj(
       s.S1.korisnik,
       zadatakId,
       "Rad studenta S1",
     );
 
+    // Asistent A preuzima pregled.
     await preuzmiPregled(s.A.korisnik, prva.predaja_id);
 
-    expect(
-      (await stanjePredaje(prva.predaja_id)).status,
-    ).toBe("u_pregledu");
+    const preuzeta = await stanjePredaje(prva.predaja_id);
 
+    expect(preuzeta.status).toBe("u_pregledu");
+    expect(preuzeta.pregledava).toBe(s.A.korisnik);
+
+    // Nastavnik ne može ponovno preuzeti već preuzetu predaju.
+    const dvostrukoPreuzimanje = await greskaKod(
+      preuzmiPregled(s.N.korisnik, prva.predaja_id),
+    );
+
+    expect(dvostrukoPreuzimanje).toBe("P0001");
+
+    // Nastavnik ima pravo vidjeti predaju, ali je ne može
+    // otpustiti jer ju je preuzeo asistent A.
+    const otpustanjeDrugog = await greskaKod(
+      otpustiPregled(s.N.korisnik, prva.predaja_id),
+    );
+
+    expect(otpustanjeDrugog).toBe("42501");
+
+    // Neuspjeli pokušaj nije promijenio stanje ni vlasnika pregleda.
+    const iDaljePreuzeta = await stanjePredaje(prva.predaja_id);
+
+    expect(iDaljePreuzeta.status).toBe("u_pregledu");
+    expect(iDaljePreuzeta.pregledava).toBe(s.A.korisnik);
+
+    // Samo asistent koji je preuzeo pregled može ga otpustiti.
     await otpustiPregled(s.A.korisnik, prva.predaja_id);
 
-    expect(
-      (await stanjePredaje(prva.predaja_id)).status,
-    ).toBe("predano");
+    const otpustena = await stanjePredaje(prva.predaja_id);
 
+    expect(otpustena.status).toBe("predano");
+    expect(otpustena.pregledava).toBeNull();
+
+    // Asistent nema pravo preuzeti predaju studenta iz grupe V2.
     const predajaS2 = await predaj(
       s.S2.korisnik,
       zadatakId,
@@ -365,7 +392,48 @@ describe("prava ocjenjivanja", () => {
 
     expect(zabranaS2).toBe("42501");
 
+    const bezPreuzimanja = await greskaKod(
+      ocijeni(
+        s.N.korisnik,
+        predajaS1.predaja_id,
+        "prihvaceno",
+        "Neovlaštena ocjena",
+        5,
+      ),
+    );
+
+    expect(bezPreuzimanja).toBe("P0001");
+
+    const stanjeBezPreuzimanja = await stanjePredaje(
+      predajaS1.predaja_id,
+    );
+
+    expect(stanjeBezPreuzimanja.status).toBe("predano");
+    expect(stanjeBezPreuzimanja.pregledava).toBeNull();
+    expect(stanjeBezPreuzimanja.bodovi).toBeNull();
+
+    // Asistent A preuzima pregled.
     await preuzmiPregled(s.A.korisnik, predajaS1.predaja_id);
+
+    const tuđaPredaja = await greskaKod(
+      ocijeni(
+        s.N.korisnik,
+        predajaS1.predaja_id,
+        "prihvaceno",
+        "Ocjena drugog korisnika",
+      5,
+    ),
+  );
+
+  expect(tuđaPredaja).toBe("42501");
+
+  const stanjeTudePredaje = await stanjePredaje(
+    predajaS1.predaja_id,
+  );
+
+  expect(stanjeTudePredaje.status).toBe("u_pregledu");
+  expect(stanjeTudePredaje.pregledava).toBe(s.A.korisnik);
+  expect(stanjeTudePredaje.bodovi).toBeNull();
 
     const previseBodova = await greskaKod(
       ocijeni(
