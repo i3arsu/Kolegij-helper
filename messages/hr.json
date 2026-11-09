@@ -549,7 +549,8 @@
       "deadlineExpired": "Rok za predaju je istekao.",
       "invalidSubmissionDecision": "Odluka o predaji nije valjana.",
       "submissionCannotChange": "Predaja je u pregledu ili prihvaćena i ne može se mijenjati.",
-      "submissionWrongState": "Predaja nije u stanju koje omogućuje ovu radnju."
+      "submissionWrongState": "Predaja nije u stanju koje omogućuje ovu radnju.",
+      "revisionDeadlineMustBeFuture": "Rok dorade mora biti u budućnosti."
     }
   },
   "submissionUpload": {

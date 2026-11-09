@@ -1,6 +1,6 @@
+
 -- migrate:up
 
--- Samo osoba koja je preuzela pregled može ocijeniti predaju.
 create or replace function private.ocijeni(
     p_predaja uuid,
     p_odluka text,
@@ -25,6 +25,14 @@ begin
        or p_odluka not in ('vraceno_na_doradu', 'prihvaceno')
     then
         raise exception 'Odluka o predaji nije valjana.'
+            using errcode = 'P0001';
+    end if;
+
+    -- Rok dorade mora biti u budućnosti.
+    if p_odluka = 'vraceno_na_doradu'
+       and p_rok_dorade is not null
+       and p_rok_dorade <= now() then
+        raise exception 'Rok dorade mora biti u budućnosti.'
             using errcode = 'P0001';
     end if;
 

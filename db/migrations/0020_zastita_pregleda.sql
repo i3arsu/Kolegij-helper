@@ -26,8 +26,16 @@ begin
             using errcode = 'P0001';
     end if;
 
-    -- Ne dopuštamo da drugi član osoblja otpusti tuđi pregled.
-    if v_predaja.pregledava is distinct from private.trenutni_korisnik() then
+    -- Vlasnik pregleda ili nastavnik kolegija može otpustiti predaju.
+    if v_predaja.pregledava is distinct from private.trenutni_korisnik()
+    and not private.je_nastavnik(
+        (
+            select z.kolegij_id
+            from public.zadatak z
+            where z.id = v_predaja.zadatak_id
+        )
+    )
+    then
         raise exception 'Nemate ovlasti za ovu predaju'
             using errcode = '42501';
     end if;

@@ -8,6 +8,7 @@ import {
 } from "next-intl";
 
 import {
+  Gumb,
   Poruka,
 } from "@/components/ui";
 
@@ -22,25 +23,35 @@ type Predlozak = {
   tekst: string;
 };
 
+type FormaOcjeneProps = {
+  kolegijId: string;
+  zadatakId: string;
+  predajaId: string;
+  maxBodova: string;
+  predlosci: Predlozak[];
+  pocetniKomentar: string;
+  pocetniBodovi: string | null;
+};
+
 export function FormaOcjene({
   kolegijId,
   zadatakId,
   predajaId,
   maxBodova,
   predlosci,
-}: {
-  kolegijId: string;
-  zadatakId: string;
-  predajaId: string;
-  maxBodova: string;
-  predlosci: Predlozak[];
-}) {
+  pocetniKomentar,
+  pocetniBodovi,
+}: FormaOcjeneProps) {
   const t = useTranslations("teacherSubmissionReview");
   const locale = useLocale();
 
-  const [komentar, setKomentar] = useState("");
+  // Komentar koji se može uređivati.
+  const [komentar, setKomentar] = useState(pocetniKomentar);
+
+  // Trenutačno odabrani predložak.
   const [predlozakId, setPredlozakId] = useState("");
 
+  // Server Action za ocjenjivanje predaje.
   const [stanje, akcija, salje] = useActionState<
     StanjePregleda,
     FormData
@@ -54,17 +65,40 @@ export function FormaOcjene({
     {},
   );
 
+  // Zajednički stil polja obrasca.
   const stilPolja =
     "w-full rounded-md border border-rub bg-povrsina px-3 py-2 text-sm";
 
+  // Dodavanje predloška bez brisanja postojećeg komentara.
+  function dodajPredlozak(id: string) {
+    const odabrani = predlosci.find(
+      (predlozak) => predlozak.id === id,
+    );
+
+    if (!odabrani) {
+      return;
+    }
+
+    setKomentar((trenutni) =>
+      trenutni.trim()
+        ? `${trenutni.trimEnd()}\n\n${odabrani.tekst}`
+        : odabrani.tekst,
+    );
+
+    // Omogućuje ponovno odabiranje istog predloška.
+    setPredlozakId("");
+  }
+
   return (
     <form action={akcija} className="space-y-4">
+      {/* Jezik obrasca */}
       <input
         type="hidden"
         name="locale"
         value={locale}
       />
 
+      {/* Rezultat server akcije */}
       {stanje.greska && (
         <Poruka vrsta="greska">
           {stanje.greska}
@@ -77,7 +111,7 @@ export function FormaOcjene({
         </Poruka>
       )}
 
-      {/* Izbor predloška komentara */}
+      {/* Predlošci komentara */}
       <div className="space-y-1">
         <label
           htmlFor="predlozak-komentara"
@@ -89,19 +123,9 @@ export function FormaOcjene({
         <select
           id="predlozak-komentara"
           value={predlozakId}
-          onChange={(event) => {
-            const id = event.target.value;
-
-            setPredlozakId(id);
-
-            const odabrani = predlosci.find(
-              (predlozak) => predlozak.id === id,
-            );
-
-            if (odabrani) {
-              setKomentar(odabrani.tekst);
-            }
-          }}
+          onChange={(event) =>
+            dodajPredlozak(event.target.value)
+          }
           className={stilPolja}
         >
           <option value="">
@@ -119,7 +143,7 @@ export function FormaOcjene({
         </select>
       </div>
 
-      {/* Komentar koji se može uređivati */}
+      {/* Komentar */}
       <div className="space-y-1">
         <label
           htmlFor="komentar-predaje"
@@ -163,6 +187,7 @@ export function FormaOcjene({
           min="0"
           max={Number(maxBodova)}
           step="0.01"
+          defaultValue={pocetniBodovi ?? ""}
           className={stilPolja}
         />
 
@@ -173,7 +198,7 @@ export function FormaOcjene({
         </p>
       </div>
 
-      {/* Opcionalni rok za doradu */}
+      {/* Rok za doradu */}
       <div className="space-y-3 rounded-md border border-rub p-3">
         <h3 className="text-sm font-semibold">
           {t("revisionDeadline")}
@@ -220,25 +245,25 @@ export function FormaOcjene({
 
       {/* Odluka */}
       <div className="flex flex-wrap gap-3 border-t border-rub pt-4">
-        <button
+        <Gumb
           type="submit"
           name="odluka"
           value="prihvaceno"
+          varijanta="primarni"
           disabled={salje}
-          className="inline-flex items-center justify-center rounded-md bg-naglasak px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {salje ? t("saving") : t("accept")}
-        </button>
+        </Gumb>
 
-        <button
+        <Gumb
           type="submit"
           name="odluka"
           value="vraceno_na_doradu"
+          varijanta="sekundarni"
           disabled={salje}
-          className="inline-flex items-center justify-center rounded-md border border-rub bg-povrsina px-4 py-2 text-sm font-medium hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {salje ? t("saving") : t("returnForRevision")}
-        </button>
+        </Gumb>
       </div>
     </form>
   );

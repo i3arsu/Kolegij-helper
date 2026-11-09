@@ -1,8 +1,7 @@
+
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
-
-import { AkcijePregleda } from "./akcije-komponenta";
 
 import {
   GumbLink,
@@ -11,101 +10,61 @@ import {
   Oznaka,
 } from "@/components/ui";
 
-import { predlosciKomentara } from "@/lib/servisi/kolegij";
+import { upit, zahtijevajOsoblje } from "@/lib/auth/guard";
 
-import { FormaOcjene } from "./forma-ocjene";
+import { formatBroj } from "@/lib/domena/broj";
+import { formatVelicina } from "@/lib/domena/datoteke";
+import {
+  KLJUC_STATUSA,
+  TON_STATUSA,
+} from "@/lib/domena/statusi";
+import { formatDatumVrijeme } from "@/lib/domena/vrijeme";
 
 import {
-  formatDatumVrijeme,
-} from "@/lib/domena/vrijeme";
-
-import {
-  upit,
-  zahtijevajOsoblje,
-} from "@/lib/auth/guard";
-
-import type { StatusPredaje } from "@/lib/db/tipovi";
+  predlosciKomentara,
+} from "@/lib/servisi/kolegij";
 
 import {
   pregledPredaje,
   sljedecaPredajaZaPregled,
 } from "@/lib/servisi/pregled-predaje";
 
-function formatBodovi(
-  bodovi: string | null,
-  jezik: "hr" | "en",
-): string {
-  if (bodovi === null) {
-    return "—";
-  }
+import { AkcijePregleda } from "./akcije-komponenta";
+import { FormaOcjene } from "./forma-ocjene";
 
-  const vrijednost = Number(bodovi);
-
-  if (!Number.isFinite(vrijednost)) {
-    return bodovi;
-  }
-
-  return new Intl.NumberFormat(jezik, {
-    maximumFractionDigits: 2,
-  }).format(vrijednost);
-}
-
-function formatVelicina(
-  velicina: string,
-  jezik: "hr" | "en",
-): string {
-  const bajtovi = Number(velicina);
-
-  if (!Number.isFinite(bajtovi) || bajtovi < 0) {
-    return velicina;
-  }
-
-  if (bajtovi < 1024) {
-    return `${bajtovi} B`;
-  }
-
-  const jedinice = ["KB", "MB", "GB"];
-  let vrijednost = bajtovi;
-  let indeks = -1;
-
-  do {
-    vrijednost /= 1024;
-    indeks++;
-  } while (
-    vrijednost >= 1024 &&
-    indeks < jedinice.length - 1
-  );
-
-  return `${new Intl.NumberFormat(jezik, {
-    maximumFractionDigits: 1,
-  }).format(vrijednost)} ${jedinice[indeks]}`;
-}
+const idsSchema = z.object({
+  kolegijId: z.uuid(),
+  zadatakId: z.uuid(),
+  predajaId: z.uuid(),
+});
 
 export default async function PregledPredaje({
   params,
 }: PageProps<
   "/[locale]/nastava/[kolegijId]/zadaci/[zadatakId]/predaje/[predajaId]"
 >) {
+  // 1. Parametri rute.
   const {
     kolegijId,
     zadatakId,
     predajaId,
   } = await params;
 
-  // Provjeravamo sve identifikatore prije pristupa bazi.
-  const idValjani = [
+  // 2. Validacija identifikatora.
+  const idsValidni = idsSchema.safeParse({
     kolegijId,
     zadatakId,
     predajaId,
-  ].every((id) => z.uuid().safeParse(id).success);
+  });
 
-  if (!idValjani) {
+  if (!idsValidni.success) {
     notFound();
   }
 
-  // Pristup imaju samo nastavnici i asistenti kolegija.
+  // 3. Provjera ovlasti osoblja.
   const uloga = await zahtijevajOsoblje(kolegijId);
 
+  // 4. Dohvaćanje podataka predaje.
   const rezultat = await upit(async (tx, profil) => {
     const detalji = await pregledPredaje(
       tx,
@@ -114,28 +73,37 @@ export default async function PregledPredaje({
       predajaId,
     );
 
-    const mozeOtpustiti =
-      detalji !== null &&
+    if (!detalji) {
+      return {
+        detalji: null,
+        jeMojPregled: false,
+        predlosci: [],
+        sljedecaPredajaId: null,
+      };
+    }
+
+    // Je li trenutačni korisnik preuzeo pregled?
+    const jeMojPregled =
       detalji.status === "u_pregledu" &&
       detalji.pregledava === profil.korisnikId;
 
-    const predlosci = mozeOtpustiti
+    // Predloške komentara dohvaćamo samo vlasniku pregleda.
+    const predlosci = jeMojPregled
       ? await predlosciKomentara(tx, kolegijId)
       : [];
 
-    // Pronalazimo sljedeću predaju dostupnu ovom korisniku.
-    const sljedecaPredajaId = detalji
-      ? await sljedecaPredajaZaPregled(
+    // Pronalazimo sljedeću dostupnu predaju.
+    const sljedecaPredajaId =
+      await sljedecaPredajaZaPregled(
         tx,
         kolegijId,
         zadatakId,
         predajaId,
-      )
-    : null;
+      );
 
     return {
       detalji,
-      mozeOtpustiti,
+      jeMojPregled,
       predlosci,
       sljedecaPredajaId,
     };
@@ -143,15 +111,16 @@ export default async function PregledPredaje({
 
   const {
     detalji,
-    mozeOtpustiti,
+    jeMojPregled,
     predlosci,
-    sljedecaPredajaId
+    sljedecaPredajaId,
   } = rezultat;
 
   if (!detalji) {
     notFound();
   }
 
+  // 5. Jezik i prijevodi.
   const locale = await getLocale();
   const jezik = locale === "en" ? "en" : "hr";
 
@@ -163,37 +132,12 @@ export default async function PregledPredaje({
     "teacherAssignmentSubmissions",
   );
 
-  function nazivStatusa(status: StatusPredaje): string {
-    switch (status) {
-      case "nije_predano":
-        return tStatus("statuses.nije_predano");
-      case "predano":
-        return tStatus("statuses.predano");
-      case "u_pregledu":
-        return tStatus("statuses.u_pregledu");
-      case "vraceno_na_doradu":
-        return tStatus("statuses.vraceno_na_doradu");
-      case "prihvaceno":
-        return tStatus("statuses.prihvaceno");
-    }
-  }
-
-  function tonStatusa(
-    status: StatusPredaje,
-  ): "uspjeh" | "upozorenje" | "neutralno" {
-    switch (status) {
-      case "prihvaceno":
-        return "uspjeh";
-      case "u_pregledu":
-      case "vraceno_na_doradu":
-        return "upozorenje";
-      default:
-        return "neutralno";
-    }
-  }
+  // 6. Najnovija verzija nalazi se na početku niza.
+  const zadnjaVerzija = detalji.verzije[0];
 
   return (
     <div className="space-y-4">
+      {/* Naslov stranice */}
       <Naslov
         podnaslov={t("subtitle")}
         akcije={
@@ -207,15 +151,16 @@ export default async function PregledPredaje({
         {t("title")}
       </Naslov>
 
+      {/* Sljedeća dostupna predaja */}
       {sljedecaPredajaId && (
-         <div className="flex justify-end">
-            <GumbLink
-              href={`/nastava/${kolegijId}/zadaci/${zadatakId}/predaje/${sljedecaPredajaId}`}
-              >
-              {t("nextSubmission")}
-            </GumbLink>
-          </div>
-        )}
+        <div className="flex justify-end">
+          <GumbLink
+            href={`/nastava/${kolegijId}/zadaci/${zadatakId}/predaje/${sljedecaPredajaId}`}
+          >
+            {t("nextSubmission")}
+          </GumbLink>
+        </div>
+      )}
 
       {/* Osnovni podaci o studentu */}
       <Kartica naslov={t("student")}>
@@ -242,7 +187,7 @@ export default async function PregledPredaje({
         </dl>
       </Kartica>
 
-      {/* Podaci o zadatku i trenutnoj predaji */}
+      {/* Podaci o zadatku i trenutačnoj predaji */}
       <Kartica naslov={t("assignment")}>
         <div className="space-y-4">
           <div>
@@ -263,10 +208,8 @@ export default async function PregledPredaje({
                 </dt>
 
                 <dd className="mt-2">
-                  <Oznaka
-                    ton={tonStatusa(detalji.status)}
-                  >
-                    {nazivStatusa(detalji.status)}
+                  <Oznaka ton={TON_STATUSA[detalji.status]}>
+                    {tStatus(KLJUC_STATUSA[detalji.status])}
                   </Oznaka>
                 </dd>
               </div>
@@ -277,9 +220,11 @@ export default async function PregledPredaje({
                 </dt>
 
                 <dd className="mt-1 tabular-nums">
-                  {formatBodovi(detalji.bodovi, jezik)}
+                  {detalji.bodovi === null
+                    ? "—"
+                    : formatBroj(detalji.bodovi, jezik)}
                   {" / "}
-                  {formatBodovi(detalji.max_bodova, jezik)}
+                  {formatBroj(detalji.max_bodova, jezik)}
                 </dd>
               </div>
 
@@ -354,26 +299,35 @@ export default async function PregledPredaje({
         </div>
       </Kartica>
 
-      {/* Claim / Release pregleda */}
+      {/* Preuzimanje i otpuštanje pregleda */}
       <Kartica naslov={t("reviewActions")}>
         <AkcijePregleda
           kolegijId={kolegijId}
           zadatakId={zadatakId}
           predajaId={predajaId}
           status={detalji.status}
-          mozeOtpustiti={mozeOtpustiti}
+          jeMojPregled={jeMojPregled}
           jeNastavnik={uloga === "nastavnik"}
+          pregledavaIme={detalji.pregledava_ime}
+          pregledavaPrezime={detalji.pregledava_prezime}
         />
       </Kartica>
 
-      {mozeOtpustiti && (
+      {/* Obrazac za ocjenjivanje */}
+      {jeMojPregled && (
         <Kartica naslov={t("grading")}>
           <FormaOcjene
-              kolegijId={kolegijId}
-              zadatakId={zadatakId}
-              predajaId={predajaId}
-              maxBodova={detalji.max_bodova}
-              predlosci={predlosci.map(
+            kolegijId={kolegijId}
+            zadatakId={zadatakId}
+            predajaId={predajaId}
+            maxBodova={detalji.max_bodova}
+            pocetniKomentar={
+              zadnjaVerzija?.komentar ?? ""
+            }
+            pocetniBodovi={
+              zadnjaVerzija?.bodovi ?? null
+            }
+            predlosci={predlosci.map(
               ({ id, naslov, tekst }) => ({
                 id,
                 naslov,
@@ -385,7 +339,6 @@ export default async function PregledPredaje({
       )}
 
       {/* Povijest svih verzija */}
-
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
@@ -404,200 +357,211 @@ export default async function PregledPredaje({
             </p>
           </Kartica>
         ) : (
-          detalji.verzije.map((verzija) => (
-            <Kartica
-              key={verzija.verzija_id}
-              naslov={`${t("version")} ${verzija.broj}`}
-            >
-              <div className="space-y-5">
-                {/* Podaci o verziji */}
-                <dl className="grid gap-4 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="font-medium">
-                      {t("submitted")}
-                    </dt>
+          detalji.verzije.map((verzija) => {
+            const imaPovratnuInformaciju =
+              verzija.odluka !== null ||
+              verzija.komentar !== null ||
+              verzija.bodovi !== null ||
+              verzija.rok_dorade !== null;
 
-                    <dd className="mt-1">
-                      {formatDatumVrijeme(
-                        verzija.predano_at,
-                        jezik,
-                      )}
-                    </dd>
-                  </div>
+            return (
+              <Kartica
+                key={verzija.verzija_id}
+                naslov={`${t("version")} ${verzija.broj}`}
+              >
+                <div className="space-y-5">
+                  {/* Podaci o verziji */}
+                  <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="font-medium">
+                        {t("submitted")}
+                      </dt>
 
-                  <div>
-                    <dt className="font-medium">
-                      {t("versionDeadline")}
-                    </dt>
+                      <dd className="mt-1">
+                        {formatDatumVrijeme(
+                          verzija.predano_at,
+                          jezik,
+                        )}
+                      </dd>
+                    </div>
 
-                    <dd className="mt-1">
-                      {verzija.rok_verzije
-                        ? formatDatumVrijeme(
-                            verzija.rok_verzije,
-                            jezik,
-                          )
-                        : "—"}
-                    </dd>
-                  </div>
-                </dl>
+                    <div>
+                      <dt className="font-medium">
+                        {t("versionDeadline")}
+                      </dt>
 
-                {verzija.kasni && (
-                  <div>
-                    <Oznaka ton="upozorenje">
-                      {t("late")}
-                    </Oznaka>
-                  </div>
-                )}
+                      <dd className="mt-1">
+                        {verzija.rok_verzije
+                          ? formatDatumVrijeme(
+                              verzija.rok_verzije,
+                              jezik,
+                            )
+                          : "—"}
+                      </dd>
+                    </div>
+                  </dl>
 
-                {/* Tekst predaje */}
-                <div>
-                  <h3 className="text-sm font-semibold">
-                    {t("submissionText")}
-                  </h3>
+                  {verzija.kasni && (
+                    <div>
+                      <Oznaka ton="upozorenje">
+                        {t("late")}
+                      </Oznaka>
+                    </div>
+                  )}
 
-                  <p className="mt-2 whitespace-pre-wrap text-sm">
-                    {verzija.tekst || t("noText")}
-                  </p>
-                </div>
-
-                {/* Vanjska poveznica */}
-                {verzija.link && (
+                  {/* Tekst predaje */}
                   <div>
                     <h3 className="text-sm font-semibold">
-                      {t("externalLink")}
+                      {t("submissionText")}
                     </h3>
 
-                    <a
-                      href={verzija.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 block break-all text-sm text-naglasak hover:underline"
-                    >
-                      {t("openLink")}
-                    </a>
+                    <p className="mt-2 whitespace-pre-wrap text-sm">
+                      {verzija.tekst || t("noText")}
+                    </p>
                   </div>
-                )}
 
-                {/* Datoteke verzije */}
-                <div>
-                  <h3 className="text-sm font-semibold">
-                    {t("files")}
-                  </h3>
+                  {/* Vanjska poveznica */}
+                  {verzija.link && (
+                    <div>
+                      <h3 className="text-sm font-semibold">
+                        {t("externalLink")}
+                      </h3>
 
-                  {verzija.datoteke.length === 0 ? (
-                    <p className="mt-2 text-sm text-tekst-slab">
-                      {t("noFiles")}
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-2">
-                      {verzija.datoteke.map((datoteka) => (
-                        <li
-                          key={datoteka.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-rub p-3"
-                        >
-                          <div className="min-w-0">
-                            <p className="break-all text-sm font-medium">
-                              {datoteka.naziv}
-                            </p>
-
-                            <p className="mt-1 text-xs text-tekst-slab">
-                              {formatVelicina(
-                                datoteka.velicina,
-                                jezik,
-                              )}
-                              {" · "}
-                              {datoteka.mime}
-                            </p>
-                          </div>
-
-                          <a
-                            href={`/api/datoteke/${datoteka.id}?locale=${encodeURIComponent(locale)}`}
-                            className="shrink-0 text-sm font-medium text-naglasak hover:underline"
-                          >
-                            {t("download")}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Povratna informacija nastavnika */}
-                <div className="border-t border-rub pt-4">
-                  <h3 className="text-sm font-semibold">
-                    {t("feedback")}
-                  </h3>
-
-                  {verzija.komentar ? (
-                    <div className="mt-3 space-y-3">
-                      {verzija.odluka && (
-                        <div>
-                          <dt className="text-xs font-medium text-tekst-slab">
-                            {t("decision")}
-                          </dt>
-
-                          <dd className="mt-1">
-                            <Oznaka
-                              ton={
-                                verzija.odluka === "prihvaceno"
-                                  ? "uspjeh"
-                                  : "upozorenje"
-                              }
-                            >
-                              {verzija.odluka === "prihvaceno"
-                                ? t("accepted")
-                                : t("returned")}
-                            </Oznaka>
-                          </dd>
-                        </div>
-                      )}
-
-                      <p className="whitespace-pre-wrap text-sm">
-                        {verzija.komentar}
-                      </p>
-
-                      {verzija.bodovi !== null && (
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {t("points")}:
-                          </span>
-                          {" "}
-                          {formatBodovi(
-                            verzija.bodovi,
-                            jezik,
-                          )}
-                        </p>
-                      )}
-
-                      {verzija.rok_dorade && (
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {t("revisionDeadline")}:
-                          </span>
-                          {" "}
-                          {formatDatumVrijeme(
-                            verzija.rok_dorade,
-                            jezik,
-                          )}
-                          {verzija.rok_dorade_prosao && (
-                            <span className="ml-2">
-                              <Oznaka ton="upozorenje">
-                                {t("deadlinePassed")}
-                              </Oznaka>
-                            </span>
-                          )}
-                        </p>
-                      )}
+                      <a
+                        href={verzija.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 block break-all text-sm text-naglasak hover:underline"
+                      >
+                        {t("openLink")}
+                      </a>
                     </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-tekst-slab">
-                      {t("noFeedback")}
-                    </p>
                   )}
+
+                  {/* Datoteke verzije */}
+                  <div>
+                    <h3 className="text-sm font-semibold">
+                      {t("files")}
+                    </h3>
+
+                    {verzija.datoteke.length === 0 ? (
+                      <p className="mt-2 text-sm text-tekst-slab">
+                        {t("noFiles")}
+                      </p>
+                    ) : (
+                      <ul className="mt-2 space-y-2">
+                        {verzija.datoteke.map((datoteka) => (
+                          <li
+                            key={datoteka.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-rub p-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="break-all text-sm font-medium">
+                                {datoteka.naziv}
+                              </p>
+
+                              <p className="mt-1 text-xs text-tekst-slab">
+                                {formatVelicina(
+                                  datoteka.velicina,
+                                  jezik,
+                                )}
+                                {" · "}
+                                {datoteka.mime}
+                              </p>
+                            </div>
+
+                            <a
+                              href={`/api/datoteke/${datoteka.id}?locale=${encodeURIComponent(locale)}`}
+                              className="shrink-0 text-sm font-medium text-naglasak hover:underline"
+                            >
+                              {t("download")}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Povratna informacija nastavnika */}
+                  <div className="border-t border-rub pt-4">
+                    <h3 className="text-sm font-semibold">
+                      {t("feedback")}
+                    </h3>
+
+                    {imaPovratnuInformaciju ? (
+                      <div className="mt-3 space-y-3">
+                        {verzija.odluka && (
+                          <div>
+                            <dt className="text-xs font-medium text-tekst-slab">
+                              {t("decision")}
+                            </dt>
+
+                            <dd className="mt-1">
+                              <Oznaka
+                                ton={
+                                  verzija.odluka === "prihvaceno"
+                                    ? "uspjeh"
+                                    : "upozorenje"
+                                }
+                              >
+                                {verzija.odluka === "prihvaceno"
+                                  ? t("accepted")
+                                  : t("returned")}
+                              </Oznaka>
+                            </dd>
+                          </div>
+                        )}
+
+                        {verzija.komentar && (
+                          <p className="whitespace-pre-wrap text-sm">
+                            {verzija.komentar}
+                          </p>
+                        )}
+
+                        {verzija.bodovi !== null && (
+                          <p className="text-sm">
+                            <span className="font-medium">
+                              {t("points")}:
+                            </span>
+                            {" "}
+                            {formatBroj(
+                              verzija.bodovi,
+                              jezik,
+                            )}
+                          </p>
+                        )}
+
+                        {verzija.rok_dorade && (
+                          <p className="text-sm">
+                            <span className="font-medium">
+                              {t("revisionDeadline")}:
+                            </span>
+                            {" "}
+                            {formatDatumVrijeme(
+                              verzija.rok_dorade,
+                              jezik,
+                            )}
+
+                            {verzija.rok_dorade_prosao && (
+                              <span className="ml-2">
+                                <Oznaka ton="upozorenje">
+                                  {t("deadlinePassed")}
+                                </Oznaka>
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-tekst-slab">
+                        {t("noFeedback")}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Kartica>
-          ))
+              </Kartica>
+            );
+          })
         )}
       </section>
     </div>

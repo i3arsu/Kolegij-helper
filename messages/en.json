@@ -549,7 +549,8 @@
       "commentRequired": "A comment is required.",
       "invalidSubmissionDecision": "The submission decision is invalid.",
       "pointsRequired": "Points are required to accept a submission.",
-      "invalidPoints": "Points must be zero or greater."
+      "invalidPoints": "Points must be zero or greater.",
+      "revisionDeadlineMustBeFuture": "The revision deadline must be in the future."
     }
   },
   "submissionUpload": {

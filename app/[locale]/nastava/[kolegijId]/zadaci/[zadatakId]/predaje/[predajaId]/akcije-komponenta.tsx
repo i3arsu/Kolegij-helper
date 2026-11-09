@@ -21,25 +21,31 @@ import {
   type StanjePregleda,
 } from "./akcije";
 
+type AkcijePregledaProps = {
+  kolegijId: string;
+  zadatakId: string;
+  predajaId: string;
+  status: StatusPredaje;
+  jeMojPregled: boolean;
+  jeNastavnik: boolean;
+  pregledavaIme: string | null;
+  pregledavaPrezime: string | null;
+};
+
 export function AkcijePregleda({
   kolegijId,
   zadatakId,
   predajaId,
   status,
-  mozeOtpustiti,
+  jeMojPregled,
   jeNastavnik,
-}: {
-  kolegijId: string;
-  zadatakId: string;
-  predajaId: string;
-  status: StatusPredaje;
-  mozeOtpustiti: boolean;
-  jeNastavnik: boolean;
-}) {
+  pregledavaIme,
+  pregledavaPrezime,
+}: AkcijePregledaProps) {
   const t = useTranslations("teacherSubmissionReview");
   const locale = useLocale();
 
-  // Acción para reclamar la revisión.
+  // 1. Akcija preuzimanja pregleda.
   const [
     stanjePreuzmi,
     akcijaPreuzmi,
@@ -54,7 +60,7 @@ export function AkcijePregleda({
     {},
   );
 
-  // Acción para liberar la revisión.
+  // 2. Akcija otpuštanja pregleda.
   const [
     stanjeOtpusti,
     akcijaOtpusti,
@@ -69,7 +75,7 @@ export function AkcijePregleda({
     {},
   );
 
-  // Acción para reabrir una entrega aceptada.
+  // 3. Akcija ponovnog otvaranja predaje.
   const [
     stanjePonovnoOtvori,
     akcijaPonovnoOtvori,
@@ -84,12 +90,26 @@ export function AkcijePregleda({
     {},
   );
 
-  const pregledavaTrenutniKorisnik = mozeOtpustiti;
+  // 4. Puno ime člana osoblja koji pregledava predaju.
+  const imePregledavatelja = [
+    pregledavaIme,
+    pregledavaPrezime,
+  ]
+    .filter(
+      (dio): dio is string => Boolean(dio?.trim()),
+    )
+    .join(" ");
+
+  // 5. Određivanje treba li prikazati poruku
+  // da trenutačno nema dostupnih radnji.
+  const prikaziNedostupno =
+    status !== "predano" &&
+    status !== "u_pregledu" &&
+    !(status === "prihvaceno" && jeNastavnik);
 
   return (
     <div className="space-y-3">
-
-      {/* Resultado de reclamar la revisión */}
+      {/* Rezultat preuzimanja pregleda */}
       {stanjePreuzmi.greska && (
         <Poruka vrsta="greska">
           {stanjePreuzmi.greska}
@@ -102,7 +122,7 @@ export function AkcijePregleda({
         </Poruka>
       )}
 
-      {/* Resultado de liberar la revisión */}
+      {/* Rezultat otpuštanja pregleda */}
       {stanjeOtpusti.greska && (
         <Poruka vrsta="greska">
           {stanjeOtpusti.greska}
@@ -115,7 +135,7 @@ export function AkcijePregleda({
         </Poruka>
       )}
 
-      {/* Resultado de reabrir la entrega */}
+      {/* Rezultat ponovnog otvaranja predaje */}
       {stanjePonovnoOtvori.greska && (
         <Poruka vrsta="greska">
           {stanjePonovnoOtvori.greska}
@@ -128,7 +148,7 @@ export function AkcijePregleda({
         </Poruka>
       )}
 
-      {/* Entrega disponible para reclamar */}
+      {/* Predaja je dostupna za pregled */}
       {status === "predano" && (
         <form
           action={akcijaPreuzmi}
@@ -141,19 +161,38 @@ export function AkcijePregleda({
           />
 
           <Gumb disabled={saljePreuzmi}>
-            {t("claim")}
+            {saljePreuzmi
+              ? t("saving")
+              : t("claim")}
           </Gumb>
         </form>
       )}
 
-      {/* El usuario actual tiene la revisión */}
-      {status === "u_pregledu" &&
-        pregledavaTrenutniKorisnik && (
-          <div className="space-y-3">
+      {/* Predaja je već preuzeta za pregled */}
+      {status === "u_pregledu" && (
+        <div className="space-y-3">
+          {/* Informacija o vlasniku pregleda */}
+          {jeMojPregled ? (
             <Poruka vrsta="uspjeh">
               {t("claimedByYou")}
             </Poruka>
+          ) : (
+            <Poruka>
+              {t("claimedByOther")}
 
+              {imePregledavatelja && (
+                <>
+                  {" "}
+                  <strong>
+                    {imePregledavatelja}
+                  </strong>
+                </>
+              )}
+            </Poruka>
+          )}
+
+          {/* Vlasnik pregleda ili nastavnik mogu otpustiti predaju */}
+          {(jeMojPregled || jeNastavnik) && (
             <form
               action={akcijaOtpusti}
               className="flex flex-wrap items-center gap-3"
@@ -165,50 +204,41 @@ export function AkcijePregleda({
               />
 
               <Gumb disabled={saljeOtpusti}>
-                {t("release")}
+                {saljeOtpusti
+                  ? t("saving")
+                  : t("release")}
               </Gumb>
             </form>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-      {/* La revisión pertenece a otro usuario */}
-      {status === "u_pregledu" &&
-        !pregledavaTrenutniKorisnik && (
-          <Poruka>
-            {t("claimedByOther")}
-          </Poruka>
-        )}
+      {/* Nastavnik može ponovno otvoriti prihvaćenu predaju */}
+      {status === "prihvaceno" && jeNastavnik && (
+        <form
+          action={akcijaPonovnoOtvori}
+          className="flex flex-wrap items-center gap-3"
+        >
+          <input
+            type="hidden"
+            name="locale"
+            value={locale}
+          />
 
-      {/* Profesor: reabrir una entrega aceptada */}
-      {status === "prihvaceno" &&
-        jeNastavnik && (
-          <form
-            action={akcijaPonovnoOtvori}
-            className="flex flex-wrap items-center gap-3"
-          >
-            <input
-              type="hidden"
-              name="locale"
-              value={locale}
-            />
+          <Gumb disabled={saljePonovnoOtvori}>
+            {saljePonovnoOtvori
+              ? t("saving")
+              : t("reopen")}
+          </Gumb>
+        </form>
+      )}
 
-            <Gumb disabled={saljePonovnoOtvori}>
-              {saljePonovnoOtvori
-                ? t("saving")
-                : t("reopen")}
-            </Gumb>
-          </form>
-        )}
-
-      {/* Estados en los que no hay ninguna acción disponible */}
-      {status !== "predano" &&
-        status !== "u_pregledu" &&
-        !(status === "prihvaceno" && jeNastavnik) && (
-          <Poruka>
-            {t("notAvailable")}
-          </Poruka>
-        )}
-
+      {/* Nije dostupna nijedna radnja */}
+      {prikaziNedostupno && (
+        <Poruka>
+          {t("notAvailable")}
+        </Poruka>
+      )}
     </div>
   );
 }

@@ -38,7 +38,8 @@ const PORUKE_BAZE: [RegExp, string][] = [
   [/^Komentar je obavezan\.$/, "db.commentRequired"],
   [/^Odluka o predaji nije valjana\.$/, "db.invalidSubmissionDecision"],
   [/^Za prihvaćanje su obavezni bodovi\.$/, "db.pointsRequired"],
-  [/^Neispravna vrijednost bodova\.$/, "db.invalidPoints"]
+  [/^Neispravna vrijednost bodova\.$/, "db.invalidPoints"],
+  [/^Rok dorade mora biti u budućnosti\.$/, "db.revisionDeadlineMustBeFuture"]
 ];
 
 export function porukaBaze(t: PrevoditeljGresaka, poruka: string | undefined): string {

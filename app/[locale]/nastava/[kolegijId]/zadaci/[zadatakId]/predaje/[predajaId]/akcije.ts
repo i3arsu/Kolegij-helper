@@ -6,6 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { sql } from "kysely";
 import { z } from "zod";
 
+import type { Tx } from "@/lib/db/klijent";
+
 import {
   formatVrijeme,
   isoDatum,
@@ -13,11 +15,13 @@ import {
 } from "@/lib/domena/vrijeme";
 
 import { jezikObrasca } from "@/i18n/obrazac";
+
 import {
   upit,
   zahtijevajOsoblje,
-  zahtijevajNastavnika
+  zahtijevajNastavnika,
 } from "@/lib/auth/guard";
+
 import {
   GreskaAplikacije,
   porukaGreske,
@@ -30,6 +34,48 @@ export type StanjePregleda = {
 
 type OperacijaPregleda = "preuzmi" | "otpusti";
 
+// Jedinstvena validacija identifikatora.
+const idsPredajeSchema = z.object({
+  kolegijId: z.uuid(),
+  zadatakId: z.uuid(),
+  predajaId: z.uuid(),
+});
+
+// Provjera svih identifikatora prije izvršavanja akcije.
+function idsPredajeSuValjani(
+  kolegijId: string,
+  zadatakId: string,
+  predajaId: string,
+): boolean {
+  return idsPredajeSchema.safeParse({
+    kolegijId,
+    zadatakId,
+    predajaId,
+  }).success;
+}
+
+// Provjerava pripada li predaja zadanom kolegiju i zadatku.
+// Upit koristi v_predaja, pa se primjenjuju postojeća RLS pravila.
+async function provjeriPredaju(
+  tx: Tx,
+  kolegijId: string,
+  zadatakId: string,
+  predajaId: string,
+): Promise<void> {
+  const dostupna = await tx
+    .selectFrom("v_predaja")
+    .select("predaja_id")
+    .where("kolegij_id", "=", kolegijId)
+    .where("zadatak_id", "=", zadatakId)
+    .where("predaja_id", "=", predajaId)
+    .executeTakeFirst();
+
+  if (!dostupna?.predaja_id) {
+    throw new GreskaAplikacije("assignmentNotFound");
+  }
+}
+
+// Zajednička implementacija preuzimanja i otpuštanja pregleda.
 async function izvrsiAkcijuPregleda(
   kolegijId: string,
   zadatakId: string,
@@ -49,39 +95,28 @@ async function izvrsiAkcijuPregleda(
     namespace: "errors",
   });
 
-  const ids = z
-    .object({
-      kolegijId: z.uuid(),
-      zadatakId: z.uuid(),
-      predajaId: z.uuid(),
-    })
-    .safeParse({
+  if (
+    !idsPredajeSuValjani(
       kolegijId,
       zadatakId,
       predajaId,
-    });
-
-  if (!ids.success) {
-    return { greska: errors("invalidData") };
+    )
+  ) {
+    return {
+      greska: errors("invalidData"),
+    };
   }
 
   await zahtijevajOsoblje(kolegijId);
 
   try {
     await upit(async (tx) => {
-      // Provjeravamo da predaja pripada upravo ovom
-      // kolegiju i zadatku te da je dostupna kroz RLS.
-      const dostupna = await tx
-        .selectFrom("v_predaja")
-        .select("predaja_id")
-        .where("kolegij_id", "=", kolegijId)
-        .where("zadatak_id", "=", zadatakId)
-        .where("predaja_id", "=", predajaId)
-        .executeTakeFirst();
-
-      if (!dostupna?.predaja_id) {
-        throw new GreskaAplikacije("assignmentNotFound");
-      }
+      await provjeriPredaju(
+        tx,
+        kolegijId,
+        zadatakId,
+        predajaId,
+      );
 
       if (operacija === "preuzmi") {
         await sql`
@@ -103,7 +138,7 @@ async function izvrsiAkcijuPregleda(
     };
   }
 
-  // Osvježava i stranicu pregleda i tablicu predaja.
+  // Osvježava stranicu pregleda i povezane stranice.
   revalidatePath(`/nastava/${kolegijId}`, "layout");
 
   return {
@@ -115,7 +150,7 @@ async function izvrsiAkcijuPregleda(
   };
 }
 
-
+// Ocjenjivanje predaje.
 export async function ocijeniPregledAkcija(
   kolegijId: string,
   zadatakId: string,
@@ -135,24 +170,19 @@ export async function ocijeniPregledAkcija(
     namespace: "errors",
   });
 
-  // Validamos primero los identificadores.
-  const ids = z
-    .object({
-      kolegijId: z.uuid(),
-      zadatakId: z.uuid(),
-      predajaId: z.uuid(),
-    })
-    .safeParse({
+  if (
+    !idsPredajeSuValjani(
       kolegijId,
       zadatakId,
       predajaId,
-    });
-
-  if (!ids.success) {
-    return { greska: errors("invalidData") };
+    )
+  ) {
+    return {
+      greska: errors("invalidData"),
+    };
   }
 
-  // Validamos los campos del formulario.
+  // Validacija polja obrasca.
   const rezultat = z
     .object({
       odluka: z.enum([
@@ -172,19 +202,21 @@ export async function ocijeniPregledAkcija(
 
   if (!rezultat.success) {
     return {
-      greska: rezultat.error.issues[0]?.message
-        ?? errors("invalidData"),
+      greska:
+        rezultat.error.issues[0]?.message ??
+        errors("invalidData"),
     };
   }
 
   const p = rezultat.data;
 
-  // Los puntos son obligatorios al aceptar.
+  // Bodovi su obavezni prilikom prihvaćanja predaje.
   const bodoviTekst = p.bodovi?.trim() ?? "";
 
-  const bodovi = bodoviTekst === ""
-    ? null
-    : Number(bodoviTekst);
+  const bodovi =
+    bodoviTekst === ""
+      ? null
+      : Number(bodoviTekst);
 
   if (
     bodovi !== null &&
@@ -204,8 +236,7 @@ export async function ocijeniPregledAkcija(
     };
   }
 
-  // El plazo de revisión es opcional, pero requiere
-  // fecha y hora conjuntamente.
+  // Rok dorade je neobavezan, ali zahtijeva datum i vrijeme.
   const datum = p.datum_dorade?.trim() ?? "";
   const vrijeme = p.vrijeme_dorade?.trim() ?? "";
 
@@ -242,8 +273,7 @@ export async function ocijeniPregledAkcija(
     try {
       rokDorade = lokalnoUTrenutak(datum, vrijeme);
 
-      // Detectamos fechas u horas locales inexistentes,
-      // por ejemplo, durante el cambio al horario de verano.
+      // Provjera lokalnog vremena tijekom promjene ljetnog računanja.
       if (
         isoDatum(rokDorade) !== datum ||
         formatVrijeme(rokDorade) !== vrijeme
@@ -259,27 +289,18 @@ export async function ocijeniPregledAkcija(
     }
   }
 
-  // Solo el personal autorizado puede ejecutar la acción.
   await zahtijevajOsoblje(kolegijId);
 
   try {
     await upit(async (tx) => {
-      // Verificamos que la entrega pertenezca al curso
-      // y al ejercicio indicados y sea visible por RLS.
-      const dostupna = await tx
-        .selectFrom("v_predaja")
-        .select("predaja_id")
-        .where("kolegij_id", "=", kolegijId)
-        .where("zadatak_id", "=", zadatakId)
-        .where("predaja_id", "=", predajaId)
-        .executeTakeFirst();
+      await provjeriPredaju(
+        tx,
+        kolegijId,
+        zadatakId,
+        predajaId,
+      );
 
-      if (!dostupna?.predaja_id) {
-        throw new GreskaAplikacije("assignmentNotFound");
-      }
-
-      // La función SQL comprueba que quien califica
-      // sea propietario de la reclamación activa.
+      // SQL funkcija provjerava vlasništvo nad aktivnim pregledom.
       await sql`
         select private.ocijeni(
           ${predajaId}::uuid,
@@ -313,6 +334,7 @@ export async function ocijeniPregledAkcija(
   };
 }
 
+// Preuzimanje pregleda.
 export async function preuzmiPregledAkcija(
   kolegijId: string,
   zadatakId: string,
@@ -329,6 +351,7 @@ export async function preuzmiPregledAkcija(
   );
 }
 
+// Otpuštanje pregleda.
 export async function otpustiPregledAkcija(
   kolegijId: string,
   zadatakId: string,
@@ -345,7 +368,7 @@ export async function otpustiPregledAkcija(
   );
 }
 
-
+// Ponovno otvaranje predaje.
 export async function ponovnoOtvoriPredajuAkcija(
   kolegijId: string,
   zadatakId: string,
@@ -365,41 +388,31 @@ export async function ponovnoOtvoriPredajuAkcija(
     namespace: "errors",
   });
 
-  const ids = z
-    .object({
-      kolegijId: z.uuid(),
-      zadatakId: z.uuid(),
-      predajaId: z.uuid(),
-    })
-    .safeParse({
+  if (
+    !idsPredajeSuValjani(
       kolegijId,
       zadatakId,
       predajaId,
-    });
-
-  if (!ids.success) {
-    return { greska: errors("invalidData") };
+    )
+  ) {
+    return {
+      greska: errors("invalidData"),
+    };
   }
 
-  // Esta operación está reservada exclusivamente al profesor.
+  // Ponovno otvaranje je dopušteno isključivo nastavniku.
   await zahtijevajNastavnika(kolegijId);
 
   try {
     await upit(async (tx) => {
-      // Comprobamos que la entrega pertenece al curso y ejercicio.
-      const dostupna = await tx
-        .selectFrom("v_predaja")
-        .select("predaja_id")
-        .where("kolegij_id", "=", kolegijId)
-        .where("zadatak_id", "=", zadatakId)
-        .where("predaja_id", "=", predajaId)
-        .executeTakeFirst();
+      await provjeriPredaju(
+        tx,
+        kolegijId,
+        zadatakId,
+        predajaId,
+      );
 
-      if (!dostupna?.predaja_id) {
-        throw new GreskaAplikacije("assignmentNotFound");
-      }
-
-      // PostgreSQL vuelve a comprobar el rol y el estado.
+      // PostgreSQL ponovno provjerava ulogu i stanje predaje.
       await sql`
         select private.ponovno_otvori(
           ${predajaId}::uuid
@@ -412,7 +425,6 @@ export async function ponovnoOtvoriPredajuAkcija(
     };
   }
 
-  // Actualizamos la pantalla de revisión y las páginas relacionadas.
   revalidatePath(
     `/nastava/${kolegijId}/zadaci/${zadatakId}/predaje/${predajaId}`,
   );
