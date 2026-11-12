@@ -241,6 +241,7 @@ export async function PredajeZadatkaTablica({
                 <th>{t("jmbag")}</th>
                 <th>{t("group")}</th>
                 <th>{t("status")}</th>
+                <th>{t("submission")}</th>
                 <th>{t("submittedAt")}</th>
                 <th>{t("deadlineStatus")}</th>
                 <th>{t("points")}</th>
@@ -291,6 +292,19 @@ export async function PredajeZadatkaTablica({
                       >
                         {nazivStatusa(predaja.status)}
                       </Oznaka>
+                    </td>
+
+                    <td>
+                      {predaja.predaja_id ? (
+                        <Link
+                          className="font-medium text-naglasak hover:underline"
+                          href={`/nastava/${kolegijId}/zadaci/${zadatakId}/predaje/${predaja.predaja_id}`}
+                          >
+                          {t("openSubmission")}
+                        </Link>
+                      ) : (
+                        <span className="text-tekst-slab">—</span>
+                      )}
                     </td>
 
                     <td className="text-tekst-slab">

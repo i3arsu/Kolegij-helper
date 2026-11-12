@@ -173,7 +173,7 @@ async function ponovnoOtvori(
 async function stanjePredaje(predajaId: string) {
   return o.vlasnik
     .selectFrom("predaja")
-    .select(["status", "trenutna_verzija", "bodovi"])
+    .select(["status", "trenutna_verzija", "bodovi", "pregledava"])
     .where("id", "=", predajaId)
     .executeTakeFirstOrThrow();
 }
@@ -236,38 +236,154 @@ describe("predaja i verzije", () => {
     );
   });
 
-  it("omogućuje nastavniku ili asistentu preuzimanje i otpuštanje pregleda", async () => {
-    const zadatakId = await noviZadatak();
-    const prva = await predaj(
-      s.S1.korisnik,
-      zadatakId,
-      "Rad studenta S1",
-    );
+  it(
+    "nastavnik može otpustiti tuđi pregled, ali drugi asistent ne može",
+    async () => {
+      const zadatakId = await noviZadatak();
 
-    await preuzmiPregled(s.A.korisnik, prva.predaja_id);
+      const predaja = await predaj(
+        s.S1.korisnik,
+        zadatakId,
+        "Rad studenta S1",
+      );
 
-    expect(
-      (await stanjePredaje(prva.predaja_id)).status,
-    ).toBe("u_pregledu");
+      // Dodajemo drugog asistenta na isti kolegij i V1 grupu.
+      // Time potvrđujemo da zabrana nije posljedica RLS-a
+      // zbog nedostupnosti studentove grupe.
+      const drugiKorisnikId = (
+        await o.vlasnik
+          .insertInto("korisnik")
+          .values({
+            email: "drugi-asistent@unipu.test",
+            lozinka_hash: "x",
+            mora_promijeniti_lozinku: false,
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow()
+      ).id;
 
-    await otpustiPregled(s.A.korisnik, prva.predaja_id);
+      const drugiOsobljeId = (
+        await o.vlasnik
+          .insertInto("osoblje")
+          .values({
+            korisnik_id: drugiKorisnikId,
+            ime: "Drugi",
+            prezime: "Asistent",
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow()
+      ).id;
 
-    expect(
-      (await stanjePredaje(prva.predaja_id)).status,
-    ).toBe("predano");
+      await o.vlasnik
+        .insertInto("osoblje_kolegija")
+        .values({
+          kolegij_id: s.K1,
+          osoblje_id: drugiOsobljeId,
+          uloga: "asistent",
+        })
+        .execute();
 
-    const predajaS2 = await predaj(
-      s.S2.korisnik,
-      zadatakId,
-      "Rad studenta S2",
-    );
+      await o.vlasnik
+        .insertInto("asistent_grupa")
+        .values({
+          grupa_id: s.G.V1,
+          osoblje_id: drugiOsobljeId,
+        })
+        .execute();
 
-    const kod = await greskaKod(
-      preuzmiPregled(s.A.korisnik, predajaS2.predaja_id),
-    );
+      // Asistent A preuzima pregled.
+      await preuzmiPregled(s.A.korisnik, predaja.predaja_id);
 
-    expect(kod).toBe("42501");
-  });
+      const preuzeta = await stanjePredaje(predaja.predaja_id);
+
+      expect(preuzeta.status).toBe("u_pregledu");
+      expect(preuzeta.pregledava).toBe(s.A.korisnik);
+
+      // Nastavnik ne može ponovno preuzeti već preuzetu predaju.
+      const dvostrukoPreuzimanje = await greskaKod(
+        preuzmiPregled(s.N.korisnik, predaja.predaja_id),
+      );
+
+      expect(dvostrukoPreuzimanje).toBe("P0001");
+
+      // Drugi asistent ima pristup grupi V1,
+      // ali ne može otpustiti tuđi pregled.
+      const otpustanjeDrugogAsistenta = await greskaKod(
+        otpustiPregled(
+          drugiKorisnikId,
+          predaja.predaja_id,
+        ),
+      );
+
+      expect(otpustanjeDrugogAsistenta).toBe("42501");
+
+      const iDaljePreuzeta = await stanjePredaje(
+        predaja.predaja_id,
+      );
+
+      expect(iDaljePreuzeta.status).toBe("u_pregledu");
+      expect(iDaljePreuzeta.pregledava).toBe(s.A.korisnik);
+
+      // Nastavnik može otpustiti pregled asistenta.
+      await otpustiPregled(s.N.korisnik, predaja.predaja_id);
+
+      const otpustena = await stanjePredaje(predaja.predaja_id);
+
+      expect(otpustena.status).toBe("predano");
+      expect(otpustena.pregledava).toBeNull();
+
+      // Nastavnik preuzima oslobođenu predaju.
+      await preuzmiPregled(s.N.korisnik, predaja.predaja_id);
+
+      const preuzetaOdNastavnika = await stanjePredaje(
+        predaja.predaja_id,
+      );
+
+      expect(preuzetaOdNastavnika.status).toBe("u_pregledu");
+      expect(preuzetaOdNastavnika.pregledava).toBe(s.N.korisnik);
+
+      // Nastavnik sada može ocijeniti predaju.
+      // Ovdje ne koristimo helper ocijeni(), jer on sam
+      // pokušava ponovno preuzeti već preuzetu predaju.
+      await o.kao(s.N.korisnik, (tx) =>
+        sql`
+          select private.ocijeni(
+            ${predaja.predaja_id}::uuid,
+            'prihvaceno'::text,
+            'Ocjena nastavnika'::text,
+            10::numeric,
+            null::timestamptz
+          )
+        `.execute(tx),
+      );
+
+      const prihvacena = await stanjePredaje(predaja.predaja_id);
+
+      expect(prihvacena.status).toBe("prihvaceno");
+      expect(prihvacena.pregledava).toBeNull();
+      expect(Number(prihvacena.bodovi)).toBe(10);
+
+      // Provjeravamo i da vlasnik pregleda i dalje može
+      // otpustiti vlastitu predaju.
+      const drugiZadatakId = await noviZadatak();
+
+      const drugaPredaja = await predaj(
+        s.S1.korisnik,
+        drugiZadatakId,
+        "Drugi rad studenta S1",
+      );
+
+      await preuzmiPregled(s.A.korisnik, drugaPredaja.predaja_id);
+      await otpustiPregled(s.A.korisnik, drugaPredaja.predaja_id);
+
+      const vlastitaOtpustena = await stanjePredaje(
+        drugaPredaja.predaja_id,
+      );
+
+      expect(vlastitaOtpustena.status).toBe("predano");
+      expect(vlastitaOtpustena.pregledava).toBeNull();
+    },
+  );
 
   it("podržava vraćanje na doradu, novu verziju, prihvaćanje i ponovno otvaranje", async () => {
     const zadatakId = await noviZadatak();
@@ -365,7 +481,48 @@ describe("prava ocjenjivanja", () => {
 
     expect(zabranaS2).toBe("42501");
 
+    const bezPreuzimanja = await greskaKod(
+      ocijeni(
+        s.N.korisnik,
+        predajaS1.predaja_id,
+        "prihvaceno",
+        "Neovlaštena ocjena",
+        5,
+      ),
+    );
+
+    expect(bezPreuzimanja).toBe("P0001");
+
+    const stanjeBezPreuzimanja = await stanjePredaje(
+      predajaS1.predaja_id,
+    );
+
+    expect(stanjeBezPreuzimanja.status).toBe("predano");
+    expect(stanjeBezPreuzimanja.pregledava).toBeNull();
+    expect(stanjeBezPreuzimanja.bodovi).toBeNull();
+
+    // Asistent A preuzima pregled.
     await preuzmiPregled(s.A.korisnik, predajaS1.predaja_id);
+
+    const tuđaPredaja = await greskaKod(
+      ocijeni(
+        s.N.korisnik,
+        predajaS1.predaja_id,
+        "prihvaceno",
+        "Ocjena drugog korisnika",
+        5,
+      ),
+    );
+
+    expect(tuđaPredaja).toBe("42501");
+
+    const stanjeTudePredaje = await stanjePredaje(
+      predajaS1.predaja_id,
+    );
+
+    expect(stanjeTudePredaje.status).toBe("u_pregledu");
+    expect(stanjeTudePredaje.pregledava).toBe(s.A.korisnik);
+    expect(stanjeTudePredaje.bodovi).toBeNull();
 
     const previseBodova = await greskaKod(
       ocijeni(
@@ -444,6 +601,47 @@ describe("rokovi predaje", () => {
     );
   });
 
+  it("odbija vraćanje na doradu s rokom koji je istekao", async () => {
+    const zadatakId = await noviZadatak();
+
+    const predaja = await predaj(
+      s.S1.korisnik,
+      zadatakId,
+      "Predaja za test isteka roka dorade",
+    );
+
+    await preuzmiPregled(s.A.korisnik, predaja.predaja_id);
+
+    const kod = await greskaKod(
+      ocijeni(
+        s.A.korisnik,
+        predaja.predaja_id,
+        "vraceno_na_doradu",
+        "Rok dorade je istekao.",
+        null,
+        new Date("2020-01-01T00:00:00.000Z"),
+      ),
+    );
+
+    expect(kod).toBe("P0001");
+
+    // Predaja ostaje u pregledu i zadržava svog pregledavatelja.
+    const stanje = await stanjePredaje(predaja.predaja_id);
+
+    expect(stanje.status).toBe("u_pregledu");
+    expect(stanje.pregledava).toBe(s.A.korisnik);
+
+    // Ne smije biti spremljena povratna informacija.
+    const povratna = await o.vlasnik
+      .selectFrom("povratna_informacija")
+      .select("predaja_id")
+      .where("predaja_id", "=", predaja.predaja_id)
+      .where("verzija_broj", "=", 1)
+      .executeTakeFirst();
+
+    expect(povratna).toBeUndefined();
+  });
+
   it("primjenjuje rok dorade na drugu verziju", async () => {
     const zadatakId = await noviZadatak({
       rok: new Date("2030-01-01T00:00:00.000Z"),
@@ -458,14 +656,25 @@ describe("rokovi predaje", () => {
 
     await preuzmiPregled(s.A.korisnik, prva.predaja_id);
 
+    // Prvo spremamo valjanu povratnu informaciju s budućim rokom.
     await ocijeni(
       s.A.korisnik,
       prva.predaja_id,
       "vraceno_na_doradu",
       "Rok dorade je istekao.",
       null,
-      new Date("2020-01-01T00:00:00.000Z"),
+      new Date("2030-01-01T00:00:00.000Z"),
     );
+
+    // Zatim simuliramo istek roka izravnom izmjenom testnih podataka.
+    await o.vlasnik
+      .updateTable("povratna_informacija")
+      .set({
+        rok_dorade: new Date("2020-01-01T00:00:00.000Z"),
+      })
+      .where("predaja_id", "=", prva.predaja_id)
+      .where("verzija_broj", "=", 1)
+      .execute();
 
     const kod = await greskaKod(
       predaj(s.S1.korisnik, zadatakId, "Druga verzija"),
@@ -486,7 +695,7 @@ describe("zaštita RLS-a i prijelazi statusa", () => {
     expect(kod).toBe("42501");
   });
 
-    it("student iz drugog kolegija ne može predati zadatak", async () => {
+  it("student iz drugog kolegija ne može predati zadatak", async () => {
     const zadatakId = await noviZadatak();
 
     const kod = await greskaKod(
@@ -626,7 +835,6 @@ describe("zaštita RLS-a i prijelazi statusa", () => {
     expect(verzijeS2).toEqual([]);
   });
 
-
   it("student vidi samo vlastite datoteke, povratne informacije i produljenja", async () => {
     const zadatakId = await noviZadatak();
 
@@ -695,7 +903,7 @@ describe("zaštita RLS-a i prijelazi statusa", () => {
       .execute();
 
     const r = await o.kao(s.S1.korisnik, async (tx) => ({
-            prilogS1: await sql<{ n: string }>`
+      prilogS1: await sql<{ n: string }>`
         select count(*) as n
         from public.predaja_datoteka pd
         join public.predaja_verzija pv
@@ -767,7 +975,6 @@ describe("zaštita RLS-a i prijelazi statusa", () => {
       rokS2: 0,
     });
   });
-
 
   it("nove tablice ne vraćaju podatke bez korisničkog konteksta", async () => {
     const tablice = [
@@ -899,14 +1106,25 @@ describe("v_predaja i v_predaja_verzija", () => {
 
     await preuzmiPregled(s.A.korisnik, prva.predaja_id);
 
+    // Prvo spremamo valjanu povratnu informaciju s budućim rokom.
     await ocijeni(
       s.A.korisnik,
       prva.predaja_id,
       "vraceno_na_doradu",
       "Dorada je potrebna.",
       null,
-      new Date("2020-01-01T00:00:00.000Z"),
+      new Date("2030-01-01T00:00:00.000Z"),
     );
+
+    // Zatim simuliramo istek roka izravnom izmjenom testnih podataka.
+    await o.vlasnik
+      .updateTable("povratna_informacija")
+      .set({
+        rok_dorade: new Date("2020-01-01T00:00:00.000Z"),
+      })
+      .where("predaja_id", "=", prva.predaja_id)
+      .where("verzija_broj", "=", 1)
+      .execute();
 
     const druga = await predaj(
       s.S1.korisnik,
