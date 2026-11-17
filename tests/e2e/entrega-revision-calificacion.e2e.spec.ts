@@ -17,8 +17,6 @@ import {
 // CONFIGURACIÓN
 // ======================================================
 
-const BASE_URL = "http://localhost:3000";
-
 const STUDENT_EMAIL = "ivan.horvat@student.unipu.test";
 const ASSISTANT_EMAIL = "tomislav.kos@unipu.test";
 const TEACHER_EMAIL = "marko.peric@unipu.test";
@@ -285,8 +283,16 @@ test.describe.serial("Flujo E2E de entrega", () => {
       } = await otvoriZadatak(page);
 
       // Creamos una sesión independiente del asistente.
+      const baseURL = test.info().project.use.baseURL;
+
+      if (typeof baseURL !== "string") {
+        throw new Error(
+        "No se ha configurado baseURL en Playwright.",
+        );
+      }
+
       const assistantContext = await browser.newContext({
-        baseURL: BASE_URL,
+        baseURL,
         locale: "hr-HR",
       });
 
@@ -325,7 +331,7 @@ test.describe.serial("Flujo E2E de entrega", () => {
 
         // Abrimos los detalles de la entrega.
         await assistantPage.goto(
-          new URL(hrefPredaje, BASE_URL).toString(),
+          new URL(hrefPredaje, baseURL).toString(),
         );
 
         // Reclamamos la revisión.
@@ -501,9 +507,15 @@ test.describe.serial("Flujo E2E de entrega", () => {
         urlNastavnika,
       } = await otvoriZadatak(page);
 
+      const baseURL = test.info().project.use.baseURL;
+
+      if (typeof baseURL !== "string") {
+        throw new Error("No se ha configurado baseURL en Playwright.");
+      }
+
       // Creamos una sesión independiente del profesor.
       const teacherContext = await browser.newContext({
-        baseURL: BASE_URL,
+        baseURL,
         locale: "hr-HR",
       });
 
@@ -542,7 +554,7 @@ test.describe.serial("Flujo E2E de entrega", () => {
         }
 
         await teacherPage.goto(
-          new URL(hrefPredaje, BASE_URL).toString(),
+          new URL(hrefPredaje, baseURL).toString()
         );
 
         // 4. Reclamamos la revisión si todavía no está asignada.
@@ -551,9 +563,8 @@ test.describe.serial("Flujo E2E de entrega", () => {
           { name: /preuzmi/i },
         );
 
-        if (await gumbPreuzmi.count() > 0) {
-          await gumbPreuzmi.click();
-        }
+        await expect(gumbPreuzmi).toBeVisible();
+        await gumbPreuzmi.click();
 
         // 5. Comprobamos que aparece el formulario.
         const campoComentario = teacherPage.locator(

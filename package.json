@@ -17,7 +17,7 @@
     "test:db": "vitest run --config vitest.db.config.mts",
     "typecheck": "next typegen && tsc --noEmit",
     "ip": "ipconfig /all",
-    "test:e2e": "playwright test"
+    "test:e2e": "cross-env E2E_RESEED=1 playwright test"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -43,6 +43,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "dbmate": "^2.36.0",
     "dotenv": "^18.0.6",
     "eslint": "^9",

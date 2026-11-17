@@ -5,6 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.e2e.spec.ts",
+  globalSetup: "./tests/e2e/global-setup.ts",
 
   fullyParallel: false,
   workers: 1,
@@ -39,7 +40,7 @@ export default defineConfig({
     command:
       "npm run dev -- --hostname localhost --port 3000",
     url: "http://localhost:3000/prijava",
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });
