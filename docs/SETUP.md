@@ -130,3 +130,29 @@ Docker Desktop is not running. Start it, wait until it says "Engine running", an
 rm -rf node_modules package-lock.json     # PowerShell: Remove-Item -Recurse -Force node_modules, package-lock.json
 npm install
 ```
+
+## E2E tests
+
+The end-to-end tests use Playwright with Chromium.
+
+### 1. Install Chromium
+
+Install the browser once on your development machine:
+
+```bash
+npx playwright install chromium
+```
+
+### 2. Run the E2E tests
+
+```bash
+npm run test:e2e
+```
+
+Playwright automatically starts the Next.js development server and runs the database seed before executing the tests.
+
+**Warning:** `npm run test:e2e` resets the configured development database using `TRUNCATE CASCADE` and recreates the demo data. All existing data in that database will be deleted.
+
+Only run these tests against a disposable local development database. Never use a production database or a database containing data you need to preserve.
+
+The E2E setup requires the explicit `E2E_RESEED=1` opt-in. The `test:e2e` npm script sets this flag automatically.
