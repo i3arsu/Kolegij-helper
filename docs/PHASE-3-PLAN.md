@@ -13,7 +13,7 @@ Phases 1 and 2 collect the data: attendance per session, and assignments with su
 
 Almost all of Phase 3 is **read-only**. It adds no new way to change data, except one new setting (planned total points). The work is mostly SQL views, plus pages that display them. The hard part is getting the definitions right and proving with tests that RLS still limits every view: an assistant sees only their groups, and a student sees only themselves.
 
-**Prerequisite:** Phase 2 must be finished first. M1–M6 are merged (assignments, submissions, attachments, deadline extensions, comment templates, student pages, review screen); only M7 (seed and Playwright) remains. Phase 3 reads the data those milestones produce, and M7 sets up Playwright, which Phase 3 extends.
+**Prerequisite:** Phase 2 is finished: M1–M7 are merged (assignments, submissions, attachments, deadline extensions, comment templates, student pages, review screen, seed and Playwright E2E). Phase 3 reads the data those milestones produce and extends the Playwright setup from M7.
 
 ## 0. Goal
 
@@ -305,7 +305,12 @@ Extend `scena-zadaci.ts` (or add `scena-analitika.ts`) with what you need. Don't
 
 ### End-to-end (milestone M7)
 
-Extend the Phase 2 Playwright setup:
+Extend the Phase 2 Playwright setup (`playwright.config.ts`, `tests/e2e/`, see `docs/SETUP.md` → "E2E tests"). `npm run test:e2e` reseeds the database before every run, so when you extend `scripts/seed.ts`, keep the scenarios the existing specs rely on:
+- Ivan Horvat (V1) has an accepted Z1 submission with a PDF;
+- Z3 (*Binarna stabla*) is assigned to V1 and V2 but not V3;
+- Klara Šarić is in V3.
+
+Then add:
 
 1. **Happy path:**
    - the lecturer opens the warnings page and sees the seeded below-threshold students;
@@ -318,7 +323,7 @@ Extend the Phase 2 Playwright setup:
 
 | # | Pull request | Size | Done when |
 |---|---|---|---|
-| **M0** | Prerequisites and reading (no PR) | S | Phase 2 M7 is merged; both test suites are green; you can explain `v_dolaznost`'s `relevantni` CTE and why an assistant's analytics show only their groups. |
+| **M0** | Prerequisites and reading (no PR) | S | `npm test`, `npm run test:db` and `npm run test:e2e` are green on `main`; you can explain `v_dolaznost`'s `relevantni` CTE and why an assistant's analytics show only their groups. |
 | **M1** | `0022_bodovi.sql` + `bodovi.test.ts` + isolation/assistant tests for its views + the `planirano_bodova` settings field | M | All tests pass; `meta` passes; `npm run db:types` committed. |
 | **M2** | `0023_upozorenja.sql` + `upozorenja.test.ts` + isolation/assistant tests | L | Every warning type has a positive and a negative test. **Mentor reviews the SQL before you continue.** |
 | **M3** | `0024_vremenska_crta.sql` + `vremenska-crta.test.ts` | S | All tests pass. |

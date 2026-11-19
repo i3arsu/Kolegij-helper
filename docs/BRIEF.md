@@ -52,8 +52,8 @@ A student must never be able to read another student's data, **even if the appli
 | Phase | Scope | Status |
 |---|---|---|
 | **1. MVP** | Login, roles, courses and groups, CSV import with preview, sessions, manual attendance, student attendance view, pass rules | **Done** |
-| **2. Assignments** | Create and assign assignments, student submissions (file/link/text), grading with comments and templates, revision rounds, late flag | **In progress**: M1–M6 merged; M7 (seed and E2E tests) remaining. See [PHASE-2-PLAN.md](PHASE-2-PLAN.md). |
-| **3. Analytics** | Warnings (below thresholds, missing submissions), student timeline, charts, CSV export of points and attendance | **Next**, after Phase 2. See [PHASE-3-PLAN.md](PHASE-3-PLAN.md). |
+| **2. Assignments** | Create and assign assignments, student submissions (file/link/text), grading with comments and templates, revision rounds, late flag | **Done**. See [PHASE-2-PLAN.md](PHASE-2-PLAN.md). |
+| **3. Analytics** | Warnings (below thresholds, missing submissions), student timeline, charts, CSV export of points and attendance | **Next**. See [PHASE-3-PLAN.md](PHASE-3-PLAN.md). |
 | 4. Extras | QR attendance check-in, email notifications, multiple courses UI, self-service password reset | Planned |
 
 The visual design is still a neutral placeholder. Final styling will be applied from Claude Design materials once they arrive. Until then, build UI from the existing simple components and do not spend time on styling.
