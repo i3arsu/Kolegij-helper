@@ -1,3 +1,4 @@
+
 -- migrate:up
 
 -- Total de puntos que se pueden conseguir en el curso.
@@ -5,6 +6,14 @@
 alter table public.pravila_prolaza
     add column planirano_bodova numeric(6,2)
     check (planirano_bodova > 0);
+
+-- El total planificado nunca puede ser inferior al mínimo necesario.
+alter table public.pravila_prolaza
+    add constraint planirano_bodova_dovoljno
+    check (
+        planirano_bodova is null
+        or planirano_bodova >= min_bodova
+    );
 
 
 -- Una fila por estudiante y sesión contabilizada.
@@ -45,9 +54,9 @@ select
 from relevantni;
 
 
--- Una fila por matrícula activa dentro del ámbito visible
--- para el usuario que consulta.
--- Los asistentes solo incluyen estudiantes de sus grupos.
+-- Una fila por matrícula activa dentro del ámbito estadístico.
+-- NOTA: el alcance de los asistentes queda pendiente de resolver
+-- con el revisor debido a la visibilidad adicional de estudiantes invitados.
 create view public.v_bodovi
 with (security_invoker = true)
 as
@@ -84,6 +93,7 @@ bodovi_po_studentu as (
         vp.kolegij_id,
         vp.student_id,
 
+        -- Puntos de entregas aceptadas.
         sum(
             case
                 when vp.status = 'prihvaceno'
@@ -92,6 +102,7 @@ bodovi_po_studentu as (
             end
         ) as prihvaceno,
 
+        -- Puntos provisionales que todavía no cuentan para aprobar.
         sum(
             case
                 when vp.status <> 'prihvaceno'
@@ -100,8 +111,10 @@ bodovi_po_studentu as (
             end
         ) as privremeno,
 
+        -- Máximo de puntos de todas las tareas publicadas.
         sum(z.max_bodova) as max_objavljeno,
 
+        -- Puntos perdidos.
         sum(
             case
                 -- Una entrega aceptada pierde los puntos
@@ -109,11 +122,20 @@ bodovi_po_studentu as (
                 when vp.status = 'prihvaceno'
                     then z.max_bodova - coalesce(vp.bodovi, 0)
 
-                -- Una tarea pendiente pierde todos sus puntos
-                -- cuando el plazo efectivo ha pasado y no
-                -- se permiten entregas tardías.
+                -- Una tarea no presentada pierde todos sus puntos
+                -- cuando el plazo efectivo ha pasado y no se
+                -- permiten entregas tardías.
                 when vp.status = 'nije_predano'
                  and vp.rok_prosao
+                 and not z.dopusti_kasnu_predaju
+                    then z.max_bodova
+
+                -- Una revisión devuelta pierde todos sus puntos
+                -- cuando vence su plazo y no se permiten
+                -- entregas tardías.
+                when vp.status = 'vraceno_na_doradu'
+                 and pi.rok_dorade is not null
+                 and now() > pi.rok_dorade
                  and not z.dopusti_kasnu_predaju
                     then z.max_bodova
 
@@ -127,6 +149,12 @@ bodovi_po_studentu as (
     join upisi_u_opsegu u
       on u.kolegij_id = vp.kolegij_id
      and u.student_id = vp.student_id
+
+    -- Recupera la retroalimentación de la versión actual.
+    left join public.povratna_informacija pi
+      on pi.predaja_id = vp.predaja_id
+     and pi.verzija_broj = vp.trenutna_verzija
+
     where z.objavljen_at is not null
     group by vp.kolegij_id, vp.student_id
 )
@@ -225,6 +253,9 @@ left join dolaznost d
 drop view public.v_prolaz;
 drop view public.v_bodovi;
 drop view public.v_dolazak_studenta;
+
+alter table public.pravila_prolaza
+    drop constraint planirano_bodova_dovoljno;
 
 alter table public.pravila_prolaza
     drop column planirano_bodova;

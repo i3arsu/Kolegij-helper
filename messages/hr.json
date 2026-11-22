@@ -431,7 +431,8 @@
       "textTooLong": "Tekst komentara smije imati najviše 5000 znakova.",
       "plannedPointsPositive": "Planirani broj bodova mora biti veći od nule.",
       "plannedPointsMax": "Planirani broj bodova ne smije biti veći od 9999,99.",
-      "plannedPointsPrecision": "Planirani broj bodova može imati najviše dvije decimale."
+      "plannedPointsPrecision": "Planirani broj bodova može imati najviše dvije decimale.",
+      "plannedPointsBelowMinimum": "Ukupan broj planiranih bodova ne može biti manji od minimalnog broja bodova za prolaz."
     },
     "rulesSaved": "Pravila su spremljena.",
     "added": "Dodano."

@@ -431,7 +431,8 @@
       "textTooLong": "Comment text must not exceed 5000 characters.",
       "plannedPointsPositive": "The planned points total must be greater than zero.",
       "plannedPointsMax": "The planned points total cannot exceed 9999.99.",
-      "plannedPointsPrecision": "The planned points total can have at most two decimal places."
+      "plannedPointsPrecision": "The planned points total can have at most two decimal places.",
+      "plannedPointsBelowMinimum": "The total planned points cannot be lower than the minimum points required to pass."
     },
     "rulesSaved": "Rules saved.",
     "added": "Added."

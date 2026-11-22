@@ -76,6 +76,15 @@ export async function pravilaAkcija(
         "kao_odsutan",
       ]),
     })
+    .refine(
+      (pravila) =>
+        pravila.planirano_bodova === null ||
+        pravila.planirano_bodova >= pravila.min_bodova,
+      {
+        path: ["planirano_bodova"],
+        message: t("validation.plannedPointsBelowMinimum"),
+      },
+    )
     .safeParse(Object.fromEntries(forma));
 
   if (!p.success) {

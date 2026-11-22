@@ -1,22 +1,12 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from "vitest";
-
-import {
-  novoOkruzenje,
-  type Okruzenje,
-} from "./pomocnici";
+import { greskaKod, novoOkruzenje, type Okruzenje } from "./pomocnici";
 
 import { postaviScenuAnalitika } from "./scena-analitika";
 
-type ScenaAnalitika = Awaited<
-  ReturnType<typeof postaviScenuAnalitika>
->;
+type ScenaAnalitika = Awaited<ReturnType<typeof postaviScenuAnalitika>>;
+
+const DAN = 24 * 60 * 60 * 1000;
 
 let o: Okruzenje;
 let s: ScenaAnalitika;
@@ -29,6 +19,40 @@ beforeAll(async () => {
 afterAll(async () => {
   await o.zatvori();
 });
+
+// Cada test comienza con las mismas reglas y plazos.
+// Así evitamos dependencias entre escenarios.
+beforeEach(async () => {
+  await o.vlasnik
+    .updateTable("pravila_prolaza")
+    .set({
+      min_bodova: 7,
+      planirano_bodova: null,
+    })
+    .where("kolegij_id", "=", s.K1)
+    .execute();
+
+  const rokBudući = new Date(Date.now() + 7 * DAN);
+
+  await postaviRokDorade(s.predaje.vracenaBezKasne, rokBudući);
+
+  await postaviRokDorade(s.predaje.vracenaSKasnom, rokBudući);
+
+  await postaviRokDorade(s.predaje.vracenaBezRoka, null);
+});
+
+async function postaviRokDorade(predajaId: string, rokDorade: Date | null) {
+  const rezultat = await o.vlasnik
+    .updateTable("povratna_informacija")
+    .set({ rok_dorade: rokDorade })
+    .where("predaja_id", "=", predajaId)
+    .where("verzija_broj", "=", 1)
+    .executeTakeFirst();
+
+  if (Number(rezultat.numUpdatedRows) !== 1) {
+    throw new Error(`Nije ažuriran rok dorade za predaju ${predajaId}.`);
+  }
+}
 
 async function bodoviStudenta(
   korisnikId: string,
@@ -50,12 +74,7 @@ describe("v_dolazak_studenta", () => {
     const rezultat = await o.kao(s.N.korisnik, async (tx) => ({
       pojedinacni: await tx
         .selectFrom("v_dolazak_studenta")
-        .select([
-          "kolegij_id",
-          "student_id",
-          "tip",
-          "status",
-        ])
+        .select(["kolegij_id", "student_id", "tip", "status"])
         .execute(),
 
       ukupni: await tx
@@ -82,41 +101,33 @@ describe("v_dolazak_studenta", () => {
 
       expect(redovi.length).toBe(Number(ukupno.odrzano));
 
-      expect(
-        redovi.filter((r) => r.status === "prisutan").length,
-      ).toBe(Number(ukupno.prisutan));
+      expect(redovi.filter((r) => r.status === "prisutan").length).toBe(
+        Number(ukupno.prisutan),
+      );
 
-      expect(
-        redovi.filter((r) => r.status === "opravdano").length,
-      ).toBe(Number(ukupno.opravdano));
+      expect(redovi.filter((r) => r.status === "opravdano").length).toBe(
+        Number(ukupno.opravdano),
+      );
 
-      expect(
-        redovi.filter((r) => r.status === "odsutan").length,
-      ).toBe(Number(ukupno.odsutan));
+      expect(redovi.filter((r) => r.status === "odsutan").length).toBe(
+        Number(ukupno.odsutan),
+      );
     }
   });
 });
 
 describe("v_bodovi", () => {
   it("razdvaja bodove prihvaćenih i privremenih predaja", async () => {
-    const r = await bodoviStudenta(
-      s.N.korisnik,
-      s.K1,
-      s.S1.student,
-    );
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
 
     expect(Number(r.prihvaceno)).toBe(7);
-    expect(Number(r.privremeno)).toBe(12);
-    expect(Number(r.max_objavljeno)).toBe(60);
+    expect(Number(r.privremeno)).toBe(24);
+    expect(Number(r.max_objavljeno)).toBe(90);
     expect(Number(r.izgubljeno)).toBe(13);
   });
 
   it("vraća nule studentu bez dodijeljenih zadataka", async () => {
-    const r = await bodoviStudenta(
-      s.N.korisnik,
-      s.K1,
-      s.S2.student,
-    );
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S2.student);
 
     expect(Number(r.prihvaceno)).toBe(0);
     expect(Number(r.privremeno)).toBe(0);
@@ -134,11 +145,7 @@ describe("v_bodovi", () => {
       .where("kolegij_id", "=", s.K1)
       .execute();
 
-    const r = await bodoviStudenta(
-      s.N.korisnik,
-      s.K1,
-      s.S1.student,
-    );
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
 
     // 60 planiranih - 13 izgubljenih = 47.
     // 47 je manje od potrebnih 50.
@@ -147,21 +154,67 @@ describe("v_bodovi", () => {
   });
 
   it("ne označava rizik kada planirani bodovi nisu postavljeni", async () => {
-    await o.vlasnik
-      .updateTable("pravila_prolaza")
-      .set({
-        planirano_bodova: null,
-      })
-      .where("kolegij_id", "=", s.K1)
-      .execute();
-
-    const r = await bodoviStudenta(
-      s.N.korisnik,
-      s.K1,
-      s.S1.student,
-    );
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
 
     expect(r.rizik).toBe(false);
+  });
+
+  it("odbija planirane bodove ispod minimalnog praga", async () => {
+    const kod = await greskaKod(
+      o.vlasnik
+        .updateTable("pravila_prolaza")
+        .set({
+          min_bodova: 50,
+          planirano_bodova: 49,
+        })
+        .where("kolegij_id", "=", s.K1)
+        .execute(),
+    );
+
+    expect(kod).toBe("23514");
+  });
+
+  it("gubi sve bodove zbog isteka roka dorade bez kasnih predaja", async () => {
+    await postaviRokDorade(
+      s.predaje.vracenaBezKasne,
+      new Date(Date.now() - 60_000),
+    );
+
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
+
+    // 13 prethodno izgubljenih + 10 poradi istekle revizije.
+    expect(Number(r.izgubljeno)).toBe(23);
+
+    // Četiri privremena boda nisu se računala u prihvaćene bodove.
+    // Ne smiju se dodatno oduzimati.
+    expect(Number(r.privremeno)).toBe(24);
+    expect(Number(r.prihvaceno)).toBe(7);
+  });
+
+  it("ne gubi bodove zbog istekle revizije kada su kasne predaje dopuštene", async () => {
+    await postaviRokDorade(
+      s.predaje.vracenaSKasnom,
+      new Date(Date.now() - 60_000),
+    );
+
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
+
+    expect(Number(r.izgubljeno)).toBe(13);
+    expect(Number(r.privremeno)).toBe(24);
+  });
+
+  it("ne gubi bodove kada je rok dorade još u budućnosti", async () => {
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
+
+    expect(Number(r.izgubljeno)).toBe(13);
+    expect(Number(r.privremeno)).toBe(24);
+  });
+
+  it("ne gubi bodove kada povratna informacija nema rok dorade", async () => {
+    const r = await bodoviStudenta(s.N.korisnik, s.K1, s.S1.student);
+
+    expect(Number(r.izgubljeno)).toBe(13);
+    expect(Number(r.privremeno)).toBe(24);
   });
 });
 
