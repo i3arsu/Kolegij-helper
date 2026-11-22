@@ -133,6 +133,7 @@ export interface PravilaProlaza {
   min_dolaznost_predavanja: Generated<Numeric>;
   min_dolaznost_vjezbi: Generated<Numeric>;
   opravdano_se_racuna: Generated<string>;
+  planirano_bodova: Numeric | null;
   updated_at: Generated<Timestamp>;
 }
 
@@ -245,6 +246,29 @@ export interface Uvoz {
   sazetak: Json;
 }
 
+export interface VBodovi {
+  izgubljeno: Numeric | null;
+  kolegij_id: string | null;
+  max_objavljeno: Numeric | null;
+  min_bodova: Numeric | null;
+  planirano_bodova: Numeric | null;
+  prihvaceno: Numeric | null;
+  privremeno: Numeric | null;
+  rizik: boolean | null;
+  student_id: string | null;
+  zadovoljava: boolean | null;
+}
+
+export interface VDolazakStudenta {
+  grupa_id: string | null;
+  kolegij_id: string | null;
+  pocetak: Timestamp | null;
+  status: string | null;
+  student_id: string | null;
+  termin_id: string | null;
+  tip: string | null;
+}
+
 export interface VDolaznost {
   kolegij_id: string | null;
   odrzano: number | null;
@@ -283,6 +307,17 @@ export interface VPredajaVerzija {
   tekst: string | null;
   verzija_id: string | null;
   zadatak_id: string | null;
+}
+
+export interface VProlaz {
+  bodovi_ok: boolean | null;
+  dolaznost_p: Numeric | null;
+  dolaznost_p_ok: boolean | null;
+  dolaznost_v: Numeric | null;
+  dolaznost_v_ok: boolean | null;
+  kolegij_id: string | null;
+  student_id: string | null;
+  zadovoljava: boolean | null;
 }
 
 export interface Zadatak {
@@ -335,9 +370,12 @@ export interface DB {
   termin: Termin;
   upis: Upis;
   uvoz: Uvoz;
+  v_bodovi: VBodovi;
+  v_dolazak_studenta: VDolazakStudenta;
   v_dolaznost: VDolaznost;
   v_predaja: VPredaja;
   v_predaja_verzija: VPredajaVerzija;
+  v_prolaz: VProlaz;
   zadatak: Zadatak;
   zadatak_grupa: ZadatakGrupa;
   zadatak_prilog: ZadatakPrilog;

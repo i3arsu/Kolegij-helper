@@ -410,6 +410,8 @@
     "minLectures": "Min. lecture attendance (%)",
     "minExercises": "Min. exercise attendance (%)",
     "minPoints": "Min. points",
+    "plannedPoints": "Total planned points",
+    "plannedPointsHelp": "The total number of points available in the course. Used to assess whether a student can still reach the minimum points threshold.",
     "minPointsHelp": "Used from phase 2 (assignments).",
     "excusedAbsence": "Excused absence",
     "excused": {
@@ -426,7 +428,10 @@
       "titleRequired": "A title is required.",
       "titleTooLong": "The title must not exceed 120 characters.",
       "textRequired": "Comment text is required.",
-      "textTooLong": "Comment text must not exceed 5000 characters."
+      "textTooLong": "Comment text must not exceed 5000 characters.",
+      "plannedPointsPositive": "The planned points total must be greater than zero.",
+      "plannedPointsMax": "The planned points total cannot exceed 9999.99.",
+      "plannedPointsPrecision": "The planned points total can have at most two decimal places."
     },
     "rulesSaved": "Rules saved.",
     "added": "Added."

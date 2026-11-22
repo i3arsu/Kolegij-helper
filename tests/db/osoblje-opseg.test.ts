@@ -54,6 +54,36 @@ describe("asistent A (samo V1)", () => {
     const vidljivi = await o.kao(s.A.korisnik, (tx) => tx.selectFrom("student").select("id").execute());
     expect(new Set(vidljivi.map((x) => x.id))).toEqual(new Set([s.S1.student, s.S2.student]));
   });
+
+it("nove analitičke poglede ograničava na studente grupe V1", async () => {
+  const r = await o.kao(s.A.korisnik, async (tx) => ({
+    dolazak: await tx
+      .selectFrom("v_dolazak_studenta")
+      .select("student_id")
+      .execute(),
+
+    bodovi: await tx
+      .selectFrom("v_bodovi")
+      .select("student_id")
+      .execute(),
+
+    prolaz: await tx
+      .selectFrom("v_prolaz")
+      .select("student_id")
+      .execute(),
+  }));
+
+  const studentiV1 = new Set([s.S1.student]);
+
+  expect(new Set(r.dolazak.map((x) => x.student_id)))
+    .toEqual(studentiV1);
+
+  expect(new Set(r.bodovi.map((x) => x.student_id)))
+    .toEqual(studentiV1);
+
+  expect(new Set(r.prolaz.map((x) => x.student_id)))
+    .toEqual(studentiV1);
+});
 });
 
 describe("nastavnik N", () => {
