@@ -1,4 +1,3 @@
-
 -- migrate:up
 
 -- Total de puntos que se pueden conseguir en el curso.
@@ -16,8 +15,38 @@ alter table public.pravila_prolaza
     );
 
 
+-- Analitički opseg: vlastiti upis, nastavnik cijeli kolegij,
+-- asistent samo trenutne članove svojih grupa (bez gostiju, vidi 0009).
+-- Samo sužava ono što RLS već dopušta, nikad ga ne proširuje.
+create function private.u_opsegu_analitike(
+    p_kolegij uuid,
+    p_student uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+    select p_student = private.moj_student_id()
+        or private.je_nastavnik(p_kolegij)
+        or exists (
+            select 1
+            from public.upis u
+            join public.clanstvo_grupe cg on cg.upis_id = u.id
+            where u.kolegij_id = p_kolegij
+              and u.student_id = p_student
+              and upper_inf(cg.vrijedi)
+              and private.vidi_grupu(cg.grupa_id)
+        );
+$$;
+
+revoke all on function private.u_opsegu_analitike(uuid, uuid) from public;
+grant execute on function private.u_opsegu_analitike(uuid, uuid) to app_user;
+
+
 -- Una fila por estudiante y sesión contabilizada.
--- Reutiliza exactamente la selección de sesiones de v_dolaznost.
+-- Reutiliza exactamente la selección de sesiónes de v_dolaznost.
 create view public.v_dolazak_studenta
 with (security_invoker = true)
 as
@@ -55,8 +84,7 @@ from relevantni;
 
 
 -- Una fila por matrícula activa dentro del ámbito estadístico.
--- NOTA: el alcance de los asistentes queda pendiente de resolver
--- con el revisor debido a la visibilidad adicional de estudiantes invitados.
+-- El alcance se centraliza en private.u_opsegu_analitike().
 create view public.v_bodovi
 with (security_invoker = true)
 as
@@ -67,25 +95,9 @@ with upisi_u_opsegu as (
         u.student_id
     from public.upis u
     where u.status = 'aktivan'
-      and (
-          -- El estudiante siempre puede consultar su propia matrícula.
-          u.student_id = private.moj_student_id()
-
-          -- El profesor puede consultar todas las matrículas del curso.
-          or private.je_nastavnik(u.kolegij_id)
-
-          -- El asistente solo incluye estudiantes de sus grupos asignados.
-          or exists (
-              select 1
-              from public.asistent_grupa ag
-              join public.grupa g
-                on g.id = ag.grupa_id
-              join public.clanstvo_grupe cg
-                on cg.grupa_id = ag.grupa_id
-               and cg.upis_id = u.id
-              where ag.osoblje_id = private.moj_osoblje_id()
-                and g.kolegij_id = u.kolegij_id
-          )
+      and private.u_opsegu_analitike(
+          u.kolegij_id,
+          u.student_id
       )
 ),
 bodovi_po_studentu as (
@@ -253,6 +265,8 @@ left join dolaznost d
 drop view public.v_prolaz;
 drop view public.v_bodovi;
 drop view public.v_dolazak_studenta;
+
+drop function private.u_opsegu_analitike(uuid, uuid);
 
 alter table public.pravila_prolaza
     drop constraint planirano_bodova_dovoljno;
