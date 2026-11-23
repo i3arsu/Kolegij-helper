@@ -99,10 +99,23 @@ export async function pravilaProlaza(tx: Tx, kolegijId: string) {
 export async function spremiPravila(
   tx: Tx,
   kolegijId: string,
-  p: { min_dolaznost_predavanja: number; min_dolaznost_vjezbi: number; min_bodova: number; opravdano_se_racuna: string },
+  p: {
+    min_dolaznost_predavanja: number;
+    min_dolaznost_vjezbi: number;
+    min_bodova: number;
+    planirano_bodova: number | null;
+    opravdano_se_racuna: string;
+  },
 ) {
-  const r = await tx.updateTable("pravila_prolaza").set(p).where("kolegij_id", "=", kolegijId).executeTakeFirst();
-  if (Number(r.numUpdatedRows) === 0) throw new GreskaAplikacije("rulesForbidden");
+  const r = await tx
+    .updateTable("pravila_prolaza")
+    .set(p)
+    .where("kolegij_id", "=", kolegijId)
+    .executeTakeFirst();
+
+  if (Number(r.numUpdatedRows) === 0) {
+    throw new GreskaAplikacije("rulesForbidden");
+  }
 }
 
 export async function predlosciKomentara(tx: Tx, kolegijId: string) {

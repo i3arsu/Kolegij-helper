@@ -4,10 +4,12 @@ import { postaviScenu, type Scena } from "./scena";
 
 let o: Okruzenje;
 let s: Scena;
+
 beforeAll(async () => {
   o = await novoOkruzenje();
   s = await postaviScenu(o.vlasnik);
 });
+
 afterAll(async () => o.zatvori());
 
 describe("asistent A (samo V1)", () => {
@@ -45,14 +47,88 @@ describe("asistent A (samo V1)", () => {
     expect(await greskaKod(o.kao(s.A.korisnik, (tx) => sql`select private.resetiraj_lozinku(${s.S1.student}, 'x')`.execute(tx)))).toBe("42501");
   });
 
-  it("vidi gosta iz druge grupe na svom terminu i nalazi ga po JMBAG-u", async () => {
+  it("vidi gosta iz druge grupe na svom terminu, ali ga ne ukljucuje u analitiku", async () => {
     const id = await o.kao(s.A.korisnik, async (tx) =>
-      (await sql<{ id: string }>`select private.nadji_studenta_za_termin(${s.T.V1}, '0000000002') as id`.execute(tx)).rows[0].id);
+      (await sql<{ id: string }>`
+        select private.nadji_studenta_za_termin(
+          ${s.T.V1},
+          '0000000002'
+        ) as id
+      `.execute(tx)).rows[0].id);
+
     expect(id).toBe(s.S2.student);
+
     await o.kao(s.A.korisnik, (tx) =>
-      tx.insertInto("dolazak").values({ termin_id: s.T.V1, student_id: id, status: "prisutan", gost: true }).execute());
-    const vidljivi = await o.kao(s.A.korisnik, (tx) => tx.selectFrom("student").select("id").execute());
-    expect(new Set(vidljivi.map((x) => x.id))).toEqual(new Set([s.S1.student, s.S2.student]));
+      tx.insertInto("dolazak").values({
+        termin_id: s.T.V1,
+        student_id: id,
+        status: "prisutan",
+        gost: true,
+      }).execute());
+
+    // La visibilidad mediante RLS sigue incluyendo al invitado.
+    const vidljivi = await o.kao(s.A.korisnik, (tx) =>
+      tx.selectFrom("student").select("id").execute());
+
+    expect(new Set(vidljivi.map((x) => x.id)))
+      .toEqual(new Set([s.S1.student, s.S2.student]));
+
+    // La matrícula sigue siendo visible mediante RLS.
+    const analitika = await o.kao(s.A.korisnik, async (tx) => ({
+      upisi: await tx.selectFrom("upis")
+        .select("student_id")
+        .where("kolegij_id", "=", s.K1)
+        .where("student_id", "=", s.S2.student)
+        .execute(),
+
+      bodovi: await tx.selectFrom("v_bodovi")
+        .select("student_id")
+        .where("kolegij_id", "=", s.K1)
+        .where("student_id", "=", s.S2.student)
+        .execute(),
+
+      prolaz: await tx.selectFrom("v_prolaz")
+        .select("student_id")
+        .where("kolegij_id", "=", s.K1)
+        .where("student_id", "=", s.S2.student)
+        .execute(),
+    }));
+
+    expect(analitika.upisi.map((x) => x.student_id))
+      .toEqual([s.S2.student]);
+
+    expect(analitika.bodovi).toEqual([]);
+    expect(analitika.prolaz).toEqual([]);
+  });
+
+  it("nove analitičke poglede ograničava na studente grupe V1", async () => {
+    const r = await o.kao(s.A.korisnik, async (tx) => ({
+      dolazak: await tx
+        .selectFrom("v_dolazak_studenta")
+        .select("student_id")
+        .execute(),
+
+      bodovi: await tx
+        .selectFrom("v_bodovi")
+        .select("student_id")
+        .execute(),
+
+      prolaz: await tx
+        .selectFrom("v_prolaz")
+        .select("student_id")
+        .execute(),
+    }));
+
+    const studentiV1 = new Set([s.S1.student]);
+
+    expect(new Set(r.dolazak.map((x) => x.student_id)))
+      .toEqual(studentiV1);
+
+    expect(new Set(r.bodovi.map((x) => x.student_id)))
+      .toEqual(studentiV1);
+
+    expect(new Set(r.prolaz.map((x) => x.student_id)))
+      .toEqual(studentiV1);
   });
 });
 
@@ -85,5 +161,80 @@ describe("nastavnik N", () => {
     expect(rows[0].autor).toBe(s.N.korisnik);
     expect(rows[0].staro.status).toBe("prisutan");
     expect(rows[0].novo.status).toBe("odsutan");
+  });
+});
+
+describe("promjena grupe i analiticki opseg", () => {
+  it("uklanja premjestenog studenta iz analitike starog asistenta i ukljucuje ga novom", async () => {
+    const izolirano = await novoOkruzenje();
+
+    try {
+      const scena = await postaviScenu(izolirano.vlasnik);
+
+      const upis = await izolirano.vlasnik
+        .selectFrom("upis")
+        .select("id")
+        .where("kolegij_id", "=", scena.K1)
+        .where("student_id", "=", scena.S1.student)
+        .executeTakeFirstOrThrow();
+
+      const datumPromjene = new Date(Date.now() - 60_000);
+
+      const { rows } = await sql<{ postavi_grupu: boolean }>`
+        select private.postavi_grupu(
+          ${upis.id}::uuid,
+          ${scena.G.V2}::uuid,
+          ${datumPromjene}::timestamptz
+        ) as postavi_grupu
+      `.execute(izolirano.vlasnik);
+
+      expect(rows[0].postavi_grupu).toBe(true);
+
+      // El asistente A ya no debe incluir a S1.
+      const analitikaA = await izolirano.kao(
+        scena.A.korisnik,
+        async (tx) => ({
+          bodovi: await tx.selectFrom("v_bodovi")
+            .select("student_id")
+            .where("kolegij_id", "=", scena.K1)
+            .execute(),
+
+          prolaz: await tx.selectFrom("v_prolaz")
+            .select("student_id")
+            .where("kolegij_id", "=", scena.K1)
+            .execute(),
+        }),
+      );
+
+      expect(analitikaA.bodovi.map((x) => x.student_id))
+        .not.toContain(scena.S1.student);
+
+      expect(analitikaA.prolaz.map((x) => x.student_id))
+        .not.toContain(scena.S1.student);
+
+      // El asistente B debe incluir a S1 en su nuevo grupo.
+      const analitikaB = await izolirano.kao(
+        scena.B.korisnik,
+        async (tx) => ({
+          bodovi: await tx.selectFrom("v_bodovi")
+            .select("student_id")
+            .where("kolegij_id", "=", scena.K1)
+            .execute(),
+
+          prolaz: await tx.selectFrom("v_prolaz")
+            .select("student_id")
+            .where("kolegij_id", "=", scena.K1)
+            .execute(),
+        }),
+      );
+
+      expect(analitikaB.bodovi.map((x) => x.student_id))
+        .toContain(scena.S1.student);
+
+      expect(analitikaB.prolaz.map((x) => x.student_id))
+        .toContain(scena.S1.student);
+    } finally {
+      await izolirano.zatvori();
+    }
   });
 });

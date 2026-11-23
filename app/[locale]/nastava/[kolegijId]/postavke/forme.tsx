@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useActionState } from "react";
@@ -17,6 +16,7 @@ type Pravila = {
   min_dolaznost_predavanja: string;
   min_dolaznost_vjezbi: string;
   min_bodova: string;
+  planirano_bodova: string | number | null;
   opravdano_se_racuna: string;
 };
 
@@ -88,6 +88,18 @@ export function FormaPravila({
         defaultValue={Number(pravila.min_bodova)}
         required
         pomoc={t("minPointsHelp")}
+      />
+
+      {/* Total de puntos que se pueden conseguir en el curso */}
+      <Polje
+        oznaka={t("plannedPoints")}
+        name="planirano_bodova"
+        type="number"
+        min={0.01}
+        max={9999.99}
+        step="0.01"
+        defaultValue={pravila.planirano_bodova ?? ""}
+        pomoc={t("plannedPointsHelp")}
       />
 
       <Odabir
@@ -276,7 +288,15 @@ export function FormaPredloska({
       </form>
 
       <div className="border-t border-rub pt-3">
-        <form action={akcijaUkloni} className="grid gap-3" onSubmit={(e) => {if (!window.confirm(t("deleteTemplateConfirm"))) {e.preventDefault();}}}>
+        <form
+          action={akcijaUkloni}
+          className="grid gap-3"
+          onSubmit={(e) => {
+            if (!window.confirm(t("deleteTemplateConfirm"))) {
+              e.preventDefault();
+            }
+          }}
+        >
           <input type="hidden" name="locale" value={locale} />
 
           {stanjeUkloni.greska && (

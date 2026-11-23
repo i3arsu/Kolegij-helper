@@ -4,7 +4,7 @@ import { lokalnoUTrenutak } from "@/lib/domena/vrijeme";
 
 /**
  * Mala scena za testove (postavlja je app_owner):
- *  K1: nastavnik N, asistent A (samo V1); grupe P1, V1, V2
+ *  K1: nastavnik N, asistenti A (samo V1), B (samo V2); grupe P1, V1, V2
  *      S1 (P1, V1), S2 (P1, V2)
  *  K2: nastavnik N2; S3 (samo na K2)
  *  Termini K1: P1 i V1 i V2 po jednom, evidentirani, s dolascima.
@@ -21,6 +21,7 @@ export async function postaviScenu(db: Baza) {
   };
   const N = await osoblje("n@unipu.test");
   const A = await osoblje("a@unipu.test");
+  const B = await osoblje("b@unipu.test");
   const N2 = await osoblje("n2@unipu.test");
 
   const kolegij = async (sifra: string) =>
@@ -31,6 +32,7 @@ export async function postaviScenu(db: Baza) {
   await db.insertInto("osoblje_kolegija").values([
     { kolegij_id: K1, osoblje_id: N.osoblje, uloga: "nastavnik" },
     { kolegij_id: K1, osoblje_id: A.osoblje, uloga: "asistent" },
+    { kolegij_id: K1, osoblje_id: B.osoblje, uloga: "asistent" },
     { kolegij_id: K2, osoblje_id: N2.osoblje, uloga: "nastavnik" },
   ]).execute();
 
@@ -38,7 +40,10 @@ export async function postaviScenu(db: Baza) {
     (await db.insertInto("grupa").values({ kolegij_id: k, naziv, tip }).returning("id").executeTakeFirstOrThrow()).id;
   const G = { P1: await grupa(K1, "P1", "predavanje"), V1: await grupa(K1, "V1", "vjezbe"), V2: await grupa(K1, "V2", "vjezbe") };
   const GK2 = await grupa(K2, "V1", "vjezbe");
-  await db.insertInto("asistent_grupa").values({ grupa_id: G.V1, osoblje_id: A.osoblje }).execute();
+  await db.insertInto("asistent_grupa").values([
+    { grupa_id: G.V1, osoblje_id: A.osoblje },
+    { grupa_id: G.V2, osoblje_id: B.osoblje },
+  ]).execute();
 
   const student = async (email: string, jmbag: string, upisi: [string, string[]][]) => {
     const k = await korisnik(email);
@@ -69,7 +74,7 @@ export async function postaviScenu(db: Baza) {
     { termin_id: T.V2, student_id: S2.student, status: "opravdano" },
   ]).execute();
 
-  return { N, A, N2, K1, K2, G, GK2, S1, S2, S3, T };
+  return { N, A, B, N2, K1, K2, G, GK2, S1, S2, S3, T };
 }
 
 export type Scena = Awaited<ReturnType<typeof postaviScenu>>;

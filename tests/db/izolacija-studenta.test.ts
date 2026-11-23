@@ -77,6 +77,64 @@ describe("student S1 čita samo svoje podatke", () => {
     expect(await greskaKod(o.kao(s.S1.korisnik, (tx) => sql`select * from prijava_pokusaj`.execute(tx)))).toBe("42501");
     expect(await greskaKod(o.kao(s.S1.korisnik, (tx) => sql`select * from revizija`.execute(tx)))).toBe("42501");
   });
+
+it("nove analitičke poglede ograničava na vlastite podatke", async () => {
+  const r = await o.kao(s.S1.korisnik, async (tx) => ({
+    dolazak: await tx
+      .selectFrom("v_dolazak_studenta")
+      .select("student_id")
+      .execute(),
+
+    bodovi: await tx
+      .selectFrom("v_bodovi")
+      .select("student_id")
+      .execute(),
+
+    prolaz: await tx
+      .selectFrom("v_prolaz")
+      .select("student_id")
+      .execute(),
+  }));
+
+  const samoS1 = new Set([s.S1.student]);
+
+  expect(new Set(r.dolazak.map((x) => x.student_id)))
+    .toEqual(samoS1);
+
+  expect(new Set(r.bodovi.map((x) => x.student_id)))
+    .toEqual(samoS1);
+
+  expect(new Set(r.prolaz.map((x) => x.student_id)))
+    .toEqual(samoS1);
+});
+
+it("direktan upit za S2 ne vraća redove iz novih pogleda", async () => {
+  const r = await o.kao(s.S1.korisnik, async (tx) => ({
+    dolazak: await tx
+      .selectFrom("v_dolazak_studenta")
+      .selectAll()
+      .where("student_id", "=", s.S2.student)
+      .execute(),
+
+    bodovi: await tx
+      .selectFrom("v_bodovi")
+      .selectAll()
+      .where("student_id", "=", s.S2.student)
+      .execute(),
+
+    prolaz: await tx
+      .selectFrom("v_prolaz")
+      .selectAll()
+      .where("student_id", "=", s.S2.student)
+      .execute(),
+  }));
+
+  expect(r).toEqual({
+    dolazak: [],
+    bodovi: [],
+    prolaz: [],
+  });
+});
 });
 
 describe("student S1 ne može ništa mijenjati", () => {
